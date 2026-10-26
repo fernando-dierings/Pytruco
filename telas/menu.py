@@ -35,6 +35,13 @@ CAMINHO_FUNDO = (
     / "fundo_menu.png"
 )
 
+CAMINHO_BOTAO = (
+    RAIZ_PROJETO
+    / "assets"
+    / "imagens"
+    / "botao1.png"
+)
+
 
 # ==================================================
 # CARREGAMENTO DAS IMAGENS
@@ -63,39 +70,51 @@ def carregar_fundo():
     imagem = pygame.image.load(str(CAMINHO_FUNDO))
     return pygame.transform.scale(imagem, (LARGURA, ALTURA))
 
+def carregar_imagem_botao():
+    if not CAMINHO_BOTAO.exists():
+        print(f"Botão não encontrado: {CAMINHO_BOTAO}")
+        return None
+
+    return pygame.image.load(
+        str(CAMINHO_BOTAO)
+    ).convert_alpha()
 
 # ==================================================
 # BOTÕES
 # ==================================================
 
-def desenhar_botao(tela, texto, retangulo, fonte, mouse_pos):
+def desenhar_botao(
+    tela, texto, retangulo, fonte, mouse_pos, imagem_botao
+):
     selecionado = retangulo.collidepoint(mouse_pos)
 
-    cor = DOURADO if selecionado else BRANCO
-    cor_fundo = (85, 50, 25) if selecionado else (25, 35, 22)
+    if imagem_botao:
+        imagem = pygame.transform.scale(
+            imagem_botao,
+            retangulo.size,
+        )
+        tela.blit(imagem, retangulo)
 
-    pygame.draw.rect(
-        tela,
-        cor_fundo,
-        retangulo,
-        border_radius=5,
-    )
+    else:
+        cor = DOURADO if selecionado else BRANCO
+        cor_fundo = (
+            (85, 50, 25) if selecionado else (25, 35, 22)
+        )
 
-    pygame.draw.rect(
-        tela,
-        cor,
-        retangulo,
-        2,
-        border_radius=5,
-    )
+        pygame.draw.rect(
+            tela, cor_fundo, retangulo, border_radius=5
+        )
+        pygame.draw.rect(
+            tela, cor, retangulo, 2, border_radius=5
+        )
 
-    superficie = fonte.render(texto, True, cor)
+    cor_texto = DOURADO if selecionado else BRANCO
+    superficie = fonte.render(texto, True, cor_texto)
 
     tela.blit(
         superficie,
         superficie.get_rect(center=retangulo.center),
     )
-
 
 # ==================================================
 # TELA DE REGRAS
@@ -169,9 +188,10 @@ def iniciar_jogo():
     fonte_titulo = pygame.font.Font(CAMINHO_FONTE, 36)
     fonte_texto = pygame.font.Font(CAMINHO_FONTE, 12)
 
-    # Carregar imagens depois de inicializar o Pygame.
+    # Carregar imagens.
     logo = carregar_logo()
     fundo_menu = carregar_fundo()
+    imagem_botao = carregar_imagem_botao()
 
     # Posições dos botões.
     botao_jogar = pygame.Rect(
@@ -275,28 +295,20 @@ def iniciar_jogo():
                 )
 
             # Botões.
+            # Botões
             desenhar_botao(
-                tela,
-                "JOGAR",
-                botao_jogar,
-                fonte_botao,
-                mouse_pos,
+                tela, "JOGAR", botao_jogar,
+                fonte_botao, mouse_pos, imagem_botao
             )
 
             desenhar_botao(
-                tela,
-                "COMO JOGAR",
-                botao_regras,
-                fonte_botao,
-                mouse_pos,
+                tela, "COMO JOGAR", botao_regras,
+                fonte_botao, mouse_pos, imagem_botao
             )
 
             desenhar_botao(
-                tela,
-                "SAIR",
-                botao_sair,
-                fonte_botao,
-                mouse_pos,
+                tela, "SAIR", botao_sair,
+                fonte_botao, mouse_pos, imagem_botao
             )
 
         # ------------------------------------------
