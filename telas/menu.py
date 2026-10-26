@@ -1,6 +1,6 @@
-import pygame
 
 from pathlib import Path
+import pygame
 
 from settings import (
     LARGURA,
@@ -15,13 +15,44 @@ from settings import (
 from telas.partida import iniciar_partida
 
 
-# Caminho da imagem de fundo
+# ==================================================
+# CAMINHOS DOS ASSETS
+# ==================================================
+
+RAIZ_PROJETO = Path(__file__).resolve().parent.parent
+
+CAMINHO_LOGO = (
+    RAIZ_PROJETO
+    / "assets"
+    / "imagens"
+    / "logo_pytruco.png"
+)
+
 CAMINHO_FUNDO = (
-    Path(__file__).resolve().parent.parent
+    RAIZ_PROJETO
     / "assets"
     / "imagens"
     / "fundo_menu.png"
 )
+
+
+# ==================================================
+# CARREGAMENTO DAS IMAGENS
+# ==================================================
+
+def carregar_logo():
+    if not CAMINHO_LOGO.exists():
+        print(f"Logo não encontrada: {CAMINHO_LOGO}")
+        return None
+
+    imagem = pygame.image.load(str(CAMINHO_LOGO)).convert_alpha()
+
+    # Mantém a proporção original da logo.
+    largura_original, altura_original = imagem.get_size()
+    largura = 560
+    altura = int(altura_original * largura / largura_original)
+
+    return pygame.transform.scale(imagem, (largura, altura))
 
 
 def carregar_fundo():
@@ -33,19 +64,42 @@ def carregar_fundo():
     return pygame.transform.scale(imagem, (LARGURA, ALTURA))
 
 
+# ==================================================
+# BOTÕES
+# ==================================================
+
 def desenhar_botao(tela, texto, retangulo, fonte, mouse_pos):
     selecionado = retangulo.collidepoint(mouse_pos)
 
     cor = DOURADO if selecionado else BRANCO
-    cor_fundo = (65, 35, 25) if selecionado else (25, 35, 22)
+    cor_fundo = (85, 50, 25) if selecionado else (25, 35, 22)
 
-    # Fundo e contorno do botão
-    pygame.draw.rect(tela, cor_fundo, retangulo, border_radius=5)
-    pygame.draw.rect(tela, cor, retangulo, 2, border_radius=5)
+    pygame.draw.rect(
+        tela,
+        cor_fundo,
+        retangulo,
+        border_radius=5,
+    )
+
+    pygame.draw.rect(
+        tela,
+        cor,
+        retangulo,
+        2,
+        border_radius=5,
+    )
 
     superficie = fonte.render(texto, True, cor)
-    tela.blit(superficie, superficie.get_rect(center=retangulo.center))
 
+    tela.blit(
+        superficie,
+        superficie.get_rect(center=retangulo.center),
+    )
+
+
+# ==================================================
+# TELA DE REGRAS
+# ==================================================
 
 def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
     if fundo:
@@ -55,10 +109,24 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
 
     painel = pygame.Surface((700, 470), pygame.SRCALPHA)
     painel.fill((15, 30, 18, 225))
-    tela.blit(painel, painel.get_rect(center=(LARGURA // 2, ALTURA // 2)))
 
-    titulo = fonte_titulo.render("COMO JOGAR", True, DOURADO)
-    tela.blit(titulo, titulo.get_rect(center=(LARGURA // 2, 180)))
+    tela.blit(
+        painel,
+        painel.get_rect(
+            center=(LARGURA // 2, ALTURA // 2)
+        ),
+    )
+
+    titulo = fonte_titulo.render(
+        "COMO JOGAR",
+        True,
+        DOURADO,
+    )
+
+    tela.blit(
+        titulo,
+        titulo.get_rect(center=(LARGURA // 2, 180)),
+    )
 
     instrucoes = [
         "Receba tres cartas.",
@@ -71,12 +139,23 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
     ]
 
     for indice, texto in enumerate(instrucoes):
-        linha = fonte_texto.render(texto, True, BRANCO)
-        tela.blit(
-            linha,
-            linha.get_rect(center=(LARGURA // 2, 260 + indice * 38)),
+        linha = fonte_texto.render(
+            texto,
+            True,
+            BRANCO,
         )
 
+        tela.blit(
+            linha,
+            linha.get_rect(
+                center=(LARGURA // 2, 260 + indice * 38)
+            ),
+        )
+
+
+# ==================================================
+# MENU PRINCIPAL
+# ==================================================
 
 def iniciar_jogo():
     pygame.init()
@@ -86,16 +165,26 @@ def iniciar_jogo():
 
     relogio = pygame.time.Clock()
 
-    fonte_titulo = pygame.font.Font(CAMINHO_FONTE, 36)
     fonte_botao = pygame.font.Font(CAMINHO_FONTE, 14)
+    fonte_titulo = pygame.font.Font(CAMINHO_FONTE, 36)
     fonte_texto = pygame.font.Font(CAMINHO_FONTE, 12)
 
+    # Carregar imagens depois de inicializar o Pygame.
+    logo = carregar_logo()
     fundo_menu = carregar_fundo()
 
-    # Posições dos botões
-    botao_jogar = pygame.Rect(LARGURA // 2 - 150, 330, 300, 55)
-    botao_regras = pygame.Rect(LARGURA // 2 - 150, 405, 300, 55)
-    botao_sair = pygame.Rect(LARGURA // 2 - 150, 480, 300, 55)
+    # Posições dos botões.
+    botao_jogar = pygame.Rect(
+        LARGURA // 2 - 150, 330, 300, 55
+    )
+
+    botao_regras = pygame.Rect(
+        LARGURA // 2 - 150, 405, 300, 55
+    )
+
+    botao_sair = pygame.Rect(
+        LARGURA // 2 - 150, 480, 300, 55
+    )
 
     tela_atual = "menu"
     executando = True
@@ -103,12 +192,20 @@ def iniciar_jogo():
     while executando:
         mouse_pos = pygame.mouse.get_pos()
 
+        # ------------------------------------------
+        # EVENTOS
+        # ------------------------------------------
+
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 executando = False
 
-            elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            elif (
+                evento.type == pygame.MOUSEBUTTONDOWN
+                and evento.button == 1
+            ):
                 if tela_atual == "menu":
+
                     if botao_jogar.collidepoint(evento.pos):
                         resultado = iniciar_partida(tela, relogio)
 
@@ -122,51 +219,96 @@ def iniciar_jogo():
                         executando = False
 
             elif evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_ESCAPE and tela_atual == "regras":
+                if (
+                    evento.key == pygame.K_ESCAPE
+                    and tela_atual == "regras"
+                ):
                     tela_atual = "menu"
 
+        # ------------------------------------------
+        # DESENHAR MENU
+        # ------------------------------------------
+
         if tela_atual == "menu":
-            # Desenha o fundo
+
             if fundo_menu:
                 tela.blit(fundo_menu, (0, 0))
             else:
                 tela.fill(VERDE_MESA)
 
-            # Painel central translúcido
-            painel = pygame.Surface((430, 430), pygame.SRCALPHA)
+            # Painel central translúcido.
+            painel = pygame.Surface(
+                (430, 430),
+                pygame.SRCALPHA,
+            )
+
             painel.fill((15, 30, 18, 205))
+
             tela.blit(
                 painel,
-                painel.get_rect(center=(LARGURA // 2, 390)),
+                painel.get_rect(
+                    center=(LARGURA // 2, 390)
+                ),
             )
 
-            # Título
-            titulo = fonte_titulo.render("PYTRUCO", True, DOURADO)
-            sombra = fonte_titulo.render("PYTRUCO", True, (25, 20, 12))
+            # Logo do PYTRUCO.
+            if logo:
+                tela.blit(
+                    logo,
+                    logo.get_rect(
+                        center=(LARGURA // 2, 230)
+                    ),
+                )
+            else:
+                # Título alternativo caso a logo não exista.
+                titulo = fonte_titulo.render(
+                    "PYTRUCO",
+                    True,
+                    DOURADO,
+                )
 
-            tela.blit(
-                sombra,
-                sombra.get_rect(center=(LARGURA // 2 + 3, 245 + 3)),
-            )
-            tela.blit(
-                titulo,
-                titulo.get_rect(center=(LARGURA // 2, 245)),
+                tela.blit(
+                    titulo,
+                    titulo.get_rect(
+                        center=(LARGURA // 2, 230)
+                    ),
+                )
+
+            # Botões.
+            desenhar_botao(
+                tela,
+                "JOGAR",
+                botao_jogar,
+                fonte_botao,
+                mouse_pos,
             )
 
-            # Botões
             desenhar_botao(
-                tela, "JOGAR", botao_jogar, fonte_botao, mouse_pos
+                tela,
+                "COMO JOGAR",
+                botao_regras,
+                fonte_botao,
+                mouse_pos,
             )
+
             desenhar_botao(
-                tela, "COMO JOGAR", botao_regras, fonte_botao, mouse_pos
+                tela,
+                "SAIR",
+                botao_sair,
+                fonte_botao,
+                mouse_pos,
             )
-            desenhar_botao(
-                tela, "SAIR", botao_sair, fonte_botao, mouse_pos
-            )
+
+        # ------------------------------------------
+        # DESENHAR REGRAS
+        # ------------------------------------------
 
         elif tela_atual == "regras":
             mostrar_regras(
-                tela, fonte_titulo, fonte_texto, fundo_menu
+                tela,
+                fonte_titulo,
+                fonte_texto,
+                fundo_menu,
             )
 
         pygame.display.flip()
@@ -177,3 +319,4 @@ def iniciar_jogo():
 
 if __name__ == "__main__":
     iniciar_jogo()
+

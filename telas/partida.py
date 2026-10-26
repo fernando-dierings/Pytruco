@@ -1,5 +1,5 @@
-import pygame
 
+import pygame
 from pathlib import Path
 
 from settings import (
@@ -13,69 +13,85 @@ from logica.partida import Partida
 
 
 # ==================================================
-# CARREGAMENTO DOS ASSETS
+# CARREGAMENTO DAS IMAGENS
 # ==================================================
 
 RAIZ_PROJETO = Path(__file__).resolve().parent.parent
+PASTA_CARTAS = RAIZ_PROJETO / "assets" / "cartas"
 
 CAMINHO_FUNDO = (
-    RAIZ_PROJETO
-    / "assets"
-    / "imagens"
-    / "fundo_partida.png"
+    RAIZ_PROJETO / "assets" / "imagens" / "fundo_partida.png"
 )
 
-fundo_partida = pygame.image.load(
-    str(CAMINHO_FUNDO)
-)
+NAIPES_ARQUIVOS = {
+    "Copas": ("copas", "copas"),
+    "Bastos": ("bastos", "bastos"),
+    "Ouros": ("ouros", "oro"),
+    "Espadas": ("espadas", "espadas"),
+}
 
-fundo_partida = pygame.transform.scale(
-    fundo_partida,
-    (LARGURA, ALTURA),
-)
+VALORES_CARTAS = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
+
+
+def carregar_imagens_cartas():
+    imagens = {}
+
+    for naipe, (pasta, prefixo) in NAIPES_ARQUIVOS.items():
+        for valor in VALORES_CARTAS:
+            caminho = PASTA_CARTAS / pasta / f"{prefixo}{valor}.png"
+
+            if not caminho.exists():
+                print(f"Imagem não encontrada: {caminho}")
+                continue
+
+            imagem = pygame.image.load(str(caminho))
+            imagens[(valor, naipe)] = imagem
+
+    return imagens
+
+
+def carregar_fundo():
+    if not CAMINHO_FUNDO.exists():
+        print(f"Fundo não encontrado: {CAMINHO_FUNDO}")
+        return None
+
+    imagem = pygame.image.load(str(CAMINHO_FUNDO))
+    return pygame.transform.scale(imagem, (LARGURA, ALTURA))
 
 
 # ==================================================
 # DESENHO DAS CARTAS
 # ==================================================
 
-def desenhar_carta(tela, carta, x, y, largura=100, altura=145):
+def desenhar_carta(
+    tela, carta, x, y, imagens, largura=100, altura=145
+):
     retangulo = pygame.Rect(x, y, largura, altura)
 
-    pygame.draw.rect(
-        tela, BRANCO, retangulo, border_radius=8
-    )
-    pygame.draw.rect(
-        tela, (30, 30, 30), retangulo, 2, border_radius=8
-    )
+    chave = (carta["valor"], carta["naipe"])
+    imagem = imagens.get(chave)
 
-    fonte = pygame.font.Font(None, 30)
-    texto = fonte.render(
-        str(carta["valor"]), True, (20, 20, 20)
-    )
-    tela.blit(texto, (x + 10, y + 10))
+    if imagem:
+        imagem_redimensionada = pygame.transform.smoothscale(
+            imagem, (largura, altura)
+        )
+        tela.blit(imagem_redimensionada, retangulo)
+    else:
+        # Reserva visual caso uma imagem não seja encontrada.
+        pygame.draw.rect(
+            tela, BRANCO, retangulo, border_radius=8
+        )
+        pygame.draw.rect(
+            tela, (30, 30, 30), retangulo, 2, border_radius=8
+        )
 
-    naipes = {
-        "Copas": "♥",
-        "Ouros": "♦",
-        "Espadas": "♠",
-        "Bastos": "♣",
-    }
-
-    cor = (
-        (190, 30, 30)
-        if carta["naipe"] in ("Copas", "Ouros")
-        else (20, 20, 20)
-    )
-
-    fonte_naipe = pygame.font.Font(None, 40)
-    simbolo = fonte_naipe.render(
-        naipes[carta["naipe"]], True, cor
-    )
-    tela.blit(
-        simbolo,
-        simbolo.get_rect(center=retangulo.center),
-    )
+        fonte = pygame.font.Font(None, 30)
+        texto = fonte.render(
+            f'{carta["valor"]} {carta["naipe"]}',
+            True,
+            (20, 20, 20),
+        )
+        tela.blit(texto, (x + 5, y + 10))
 
     return retangulo
 
@@ -86,6 +102,9 @@ def desenhar_carta(tela, carta, x, y, largura=100, altura=145):
 
 def iniciar_partida(tela, relogio):
     partida = Partida()
+
+    imagens_cartas = carregar_imagens_cartas()
+    fundo_partida = carregar_fundo()
 
     fonte = pygame.font.Font(None, 32)
     fonte_pequena = pygame.font.Font(None, 25)
@@ -112,18 +131,12 @@ def iniciar_partida(tela, relogio):
     while executando:
         quantidade = len(partida.jogador.cartas)
         espacamento = 120
-
-        inicio_x = (
-            LARGURA - quantidade * espacamento
-        ) // 2
+        inicio_x = (LARGURA - quantidade * espacamento) // 2
 
         botoes_cartas = []
 
-        for indice, carta in enumerate(
-            partida.jogador.cartas
-        ):
+        for indice, carta in enumerate(partida.jogador.cartas):
             x = inicio_x + indice * espacamento
-
             botoes_cartas.append(
                 pygame.Rect(x, 410, 100, 145)
             )
@@ -146,22 +159,15 @@ def iniciar_partida(tela, relogio):
             ):
                 continue
 
-            # Reiniciar após o fim da partida.
             if encerrada:
                 partida = Partida()
-
                 carta_jogador = None
                 carta_computador = None
-
-                mensagem = (
-                    "Nova partida! Clique em uma carta."
-                )
-
+                mensagem = "Nova partida! Clique em uma carta."
                 aguardando_proxima = False
                 encerrada = False
                 continue
 
-            # Responder ao truco do computador.
             if partida.truco_pendente_computador:
                 if botao_aceitar.collidepoint(evento.pos):
                     mensagem = partida.responder_truco(True)
@@ -175,22 +181,17 @@ def iniciar_partida(tela, relogio):
 
                 continue
 
-            # Avançar após uma rodada.
             if aguardando_proxima:
                 if partida.partida_encerrada():
                     encerrada = True
 
-                    if (
-                        partida.pontos_jogador
-                        >= PONTOS_PARA_VENCER
-                    ):
+                    if partida.pontos_jogador >= PONTOS_PARA_VENCER:
                         mensagem = (
                             "Voce venceu! Clique para nova partida."
                         )
                     else:
                         mensagem = (
-                            "Computador venceu! "
-                            "Clique para jogar novamente."
+                            "Computador venceu! Clique para jogar novamente."
                         )
 
                 elif (
@@ -198,26 +199,18 @@ def iniciar_partida(tela, relogio):
                     or not partida.jogador.tem_cartas()
                 ):
                     partida.nova_mao()
-
                     carta_jogador = None
                     carta_computador = None
-
-                    mensagem = (
-                        "Nova mao! Clique em uma carta."
-                    )
+                    mensagem = "Nova mao! Clique em uma carta."
 
                 else:
                     carta_jogador = None
                     carta_computador = None
-
-                    mensagem = (
-                        "Clique em uma carta para jogar."
-                    )
+                    mensagem = "Clique em uma carta para jogar."
 
                 aguardando_proxima = False
                 continue
 
-            # Pedir truco.
             if (
                 botao_truco.collidepoint(evento.pos)
                 and not partida.truco_pedido
@@ -235,10 +228,7 @@ def iniciar_partida(tela, relogio):
 
                 continue
 
-            # Jogar uma carta.
-            for indice, retangulo in enumerate(
-                botoes_cartas
-            ):
+            for indice, retangulo in enumerate(botoes_cartas):
                 if not retangulo.collidepoint(evento.pos):
                     continue
 
@@ -253,27 +243,21 @@ def iniciar_partida(tela, relogio):
 
                 if resultado["computador_pediu_truco"]:
                     mensagem = (
-                        "O computador pediu TRUCO! "
-                        "Aceita ou corre?"
+                        "O computador pediu TRUCO! Aceita ou corre?"
                     )
 
                 elif resultado["vencedor_mao"] == "jogador":
-                    mensagem = (
-                        "Voce venceu a mao! Clique para continuar."
-                    )
+                    mensagem = "Voce venceu a mao! Clique para continuar."
                     aguardando_proxima = True
 
                 elif resultado["vencedor_mao"] == "computador":
                     mensagem = (
-                        "Computador venceu a mao! "
-                        "Clique para continuar."
+                        "Computador venceu a mao! Clique para continuar."
                     )
                     aguardando_proxima = True
 
                 elif resultado["vencedor_mao"] == "empate":
-                    mensagem = (
-                        "Mao empatada! Clique para continuar."
-                    )
+                    mensagem = "Mao empatada! Clique para continuar."
                     aguardando_proxima = True
 
                 elif resultado["resultado"] == "jogador":
@@ -284,15 +268,12 @@ def iniciar_partida(tela, relogio):
 
                 elif resultado["resultado"] == "computador":
                     mensagem = (
-                        "Computador venceu a rodada! "
-                        "Clique para continuar."
+                        "Computador venceu a rodada! Clique para continuar."
                     )
                     aguardando_proxima = True
 
                 else:
-                    mensagem = (
-                        "Rodada empatada! Clique para continuar."
-                    )
+                    mensagem = "Rodada empatada! Clique para continuar."
                     aguardando_proxima = True
 
                 break
@@ -301,21 +282,17 @@ def iniciar_partida(tela, relogio):
         # DESENHAR A INTERFACE
         # ------------------------------------------
 
-        # Fundo pixel art da mesa.
-        tela.blit(fundo_partida, (0, 0))
+        if fundo_partida:
+            tela.blit(fundo_partida, (0, 0))
+        else:
+            tela.fill((20, 90, 45))
 
-        # Título.
-        titulo = fonte.render(
-            "PYTRUCO", True, DOURADO
-        )
+        titulo = fonte.render("PYTRUCO", True, DOURADO)
         tela.blit(
             titulo,
-            titulo.get_rect(
-                center=(LARGURA // 2, 35)
-            ),
+            titulo.get_rect(center=(LARGURA // 2, 35)),
         )
 
-        # Placar.
         placar = fonte_pequena.render(
             f"Voce: {partida.pontos_jogador}  |  "
             f"Computador: {partida.pontos_computador}",
@@ -324,12 +301,9 @@ def iniciar_partida(tela, relogio):
         )
         tela.blit(
             placar,
-            placar.get_rect(
-                center=(LARGURA // 2, 80)
-            ),
+            placar.get_rect(center=(LARGURA // 2, 80)),
         )
 
-        # Valor da mão.
         texto_valor = fonte_pequena.render(
             f"Valor da mao: {partida.valor_mao}",
             True,
@@ -337,118 +311,69 @@ def iniciar_partida(tela, relogio):
         )
         tela.blit(
             texto_valor,
-            texto_valor.get_rect(
-                center=(LARGURA // 2, 110)
-            ),
+            texto_valor.get_rect(center=(LARGURA // 2, 110)),
         )
 
-        # Identificação das cartas jogadas.
         centro_jogador = LARGURA // 2 - 70
         centro_computador = LARGURA // 2 + 70
 
-        texto = fonte_pequena.render(
-            "SUA CARTA", True, BRANCO
-        )
+        texto = fonte_pequena.render("SUA CARTA", True, BRANCO)
         tela.blit(
             texto,
-            texto.get_rect(
-                center=(centro_jogador, 145)
-            ),
+            texto.get_rect(center=(centro_jogador, 145)),
         )
 
-        texto = fonte_pequena.render(
-            "COMPUTADOR", True, BRANCO
-        )
+        texto = fonte_pequena.render("COMPUTADOR", True, BRANCO)
         tela.blit(
             texto,
-            texto.get_rect(
-                center=(centro_computador, 145)
-            ),
+            texto.get_rect(center=(centro_computador, 145)),
         )
 
         if carta_jogador and carta_computador:
             desenhar_carta(
-                tela,
-                carta_jogador,
-                centro_jogador - 50,
-                165,
+                tela, carta_jogador,
+                centro_jogador - 50, 165, imagens_cartas
             )
-
             desenhar_carta(
-                tela,
-                carta_computador,
-                centro_computador - 50,
-                165,
+                tela, carta_computador,
+                centro_computador - 50, 165, imagens_cartas
             )
 
-        # Cartas disponíveis do jogador.
-        texto = fonte_pequena.render(
-            "SUAS CARTAS", True, BRANCO
-        )
+        texto = fonte_pequena.render("SUAS CARTAS", True, BRANCO)
         tela.blit(
             texto,
-            texto.get_rect(
-                center=(LARGURA // 2, 370)
-            ),
+            texto.get_rect(center=(LARGURA // 2, 370)),
         )
 
-        for indice, carta in enumerate(
-            partida.jogador.cartas
-        ):
+        for indice, carta in enumerate(partida.jogador.cartas):
             x = inicio_x + indice * espacamento
-
             desenhar_carta(
-                tela, carta, x, 410
+                tela, carta, x, 410, imagens_cartas
             )
 
-        # Botões de truco.
         if partida.truco_pendente_computador:
             pygame.draw.rect(
-                tela,
-                (35, 145, 65),
-                botao_aceitar,
-                border_radius=8,
+                tela, (35, 145, 65), botao_aceitar, border_radius=8
             )
             pygame.draw.rect(
-                tela,
-                DOURADO,
-                botao_aceitar,
-                2,
-                border_radius=8,
+                tela, DOURADO, botao_aceitar, 2, border_radius=8
             )
 
-            texto = fonte_pequena.render(
-                "ACEITAR", True, BRANCO
-            )
+            texto = fonte_pequena.render("ACEITAR", True, BRANCO)
             tela.blit(
-                texto,
-                texto.get_rect(
-                    center=botao_aceitar.center
-                ),
+                texto, texto.get_rect(center=botao_aceitar.center)
             )
 
             pygame.draw.rect(
-                tela,
-                (180, 45, 45),
-                botao_correr,
-                border_radius=8,
+                tela, (180, 45, 45), botao_correr, border_radius=8
             )
             pygame.draw.rect(
-                tela,
-                DOURADO,
-                botao_correr,
-                2,
-                border_radius=8,
+                tela, DOURADO, botao_correr, 2, border_radius=8
             )
 
-            texto = fonte_pequena.render(
-                "CORRER", True, BRANCO
-            )
+            texto = fonte_pequena.render("CORRER", True, BRANCO)
             tela.blit(
-                texto,
-                texto.get_rect(
-                    center=botao_correr.center
-                ),
+                texto, texto.get_rect(center=botao_correr.center)
             )
 
         else:
@@ -460,55 +385,35 @@ def iniciar_partida(tela, relogio):
             )
 
             cor_botao = (
-                (180, 45, 45)
-                if truco_disponivel
-                else (90, 90, 90)
+                (180, 45, 45) if truco_disponivel else (90, 90, 90)
             )
 
             pygame.draw.rect(
-                tela,
-                cor_botao,
-                botao_truco,
-                border_radius=8,
+                tela, cor_botao, botao_truco, border_radius=8
             )
             pygame.draw.rect(
-                tela,
-                DOURADO,
-                botao_truco,
-                2,
-                border_radius=8,
+                tela, DOURADO, botao_truco, 2, border_radius=8
             )
 
-            texto = fonte_pequena.render(
-                "PEDIR TRUCO", True, BRANCO
-            )
+            texto = fonte_pequena.render("PEDIR TRUCO", True, BRANCO)
             tela.blit(
-                texto,
-                texto.get_rect(
-                    center=botao_truco.center
-                ),
+                texto, texto.get_rect(center=botao_truco.center)
             )
 
-        # Mensagem da partida.
         texto_mensagem = fonte_pequena.render(
             mensagem, True, DOURADO
         )
         tela.blit(
             texto_mensagem,
-            texto_mensagem.get_rect(
-                center=(LARGURA // 2, 630)
-            ),
+            texto_mensagem.get_rect(center=(LARGURA // 2, 630)),
         )
 
-        # Ajuda.
         ajuda = fonte_pequena.render(
             "ESC: voltar ao menu", True, BRANCO
         )
         tela.blit(
             ajuda,
-            ajuda.get_rect(
-                center=(LARGURA // 2, 675)
-            ),
+            ajuda.get_rect(center=(LARGURA // 2, 675)),
         )
 
         pygame.display.flip()
