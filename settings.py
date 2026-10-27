@@ -1,32 +1,64 @@
+
 # Configurações gerais do jogo
 from pathlib import Path
 
-# Assets
-RAIZ_PROJETO = Path(__file__).resolve().parent.parent
-CAMINHO_FONTE = "assets/fontes/Press_Start_2P/PressStart2P-Regular.ttf" #Fonte do jogo
 
-CAMINHO_LOGO = (
-    RAIZ_PROJETO
-    / "assets"
-    / "imagens"
-    / "logo_pytruco.png") # Logo do Pytruco
+# ==================================================
+# CAMINHOS DO PROJETO
+# ==================================================
+
+RAIZ_PROJETO = Path(__file__).resolve().parent
+
+PASTA_ASSETS = RAIZ_PROJETO / "assets"
+PASTA_IMAGENS = PASTA_ASSETS / "imagens"
+PASTA_FONTES = PASTA_ASSETS / "fontes"
+PASTA_SONS = PASTA_ASSETS / "sons"
+PASTA_CARTAS = PASTA_ASSETS / "cartas"
 
 
-# Configurações da janela
+# ==================================================
+# CAMINHOS DOS RECURSOS
+# ==================================================
+
+CAMINHO_FONTE = (
+    PASTA_FONTES
+    / "Press_Start_2P"
+    / "PressStart2P-Regular.ttf"
+)
+
+CAMINHO_LOGO = PASTA_IMAGENS / "logo_pytruco.png"
+CAMINHO_FUNDO_MENU = PASTA_IMAGENS / "fundo_menu.png"
+CAMINHO_FUNDO_PARTIDA = PASTA_IMAGENS / "fundo_partida.png"
+CAMINHO_TELA_VITORIA = PASTA_IMAGENS / "tela_vitoria.png"
+
+
+# ==================================================
+# CONFIGURAÇÕES DA JANELA
+# ==================================================
+
 LARGURA = 1000
 ALTURA = 700
 TITULO = "PYTRUCO"
 FPS = 60
 
-# Cores (RGB)
+
+# ==================================================
+# CORES (RGB)
+# ==================================================
+
 VERDE_MESA = (35, 110, 65)
 BRANCO = (255, 255, 255)
 PRETO = (0, 0, 0)
 VERMELHO = (200, 40, 40)
 DOURADO = (230, 190, 80)
 
-# Configurações da partida
+
+# ==================================================
+# CONFIGURAÇÕES DA PARTIDA
+# ==================================================
+
 PONTOS_PARA_VENCER = 12
 CARTAS_POR_JOGADOR = 3
+
 
 

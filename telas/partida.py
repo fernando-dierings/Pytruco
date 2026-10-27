@@ -1,29 +1,23 @@
-
 import pygame
-from pathlib import Path
 
 from settings import (
     LARGURA,
     ALTURA,
     BRANCO,
+    PRETO,
     DOURADO,
     PONTOS_PARA_VENCER,
     CAMINHO_FONTE,
+    CAMINHO_FUNDO_PARTIDA,
+    CAMINHO_TELA_VITORIA,
+    PASTA_CARTAS,
 )
 
 from logica.partida import Partida
 
-
 # ==================================================
 # CAMINHOS E CONFIGURAÇÕES
 # ==================================================
-
-RAIZ_PROJETO = Path(__file__).resolve().parent.parent
-PASTA_CARTAS = RAIZ_PROJETO / "assets" / "cartas"
-PASTA_IMAGENS = RAIZ_PROJETO / "assets" / "imagens"
-
-CAMINHO_FUNDO = PASTA_IMAGENS / "fundo_partida.png"
-CAMINHO_VITORIA = PASTA_IMAGENS / "tela_vitoria.png"
 
 NAIPES_ARQUIVOS = {
     "Copas": ("copas", "copas"),
@@ -66,12 +60,11 @@ def carregar_imagem(caminho):
 
 
 def carregar_fundo():
-    return carregar_imagem(CAMINHO_FUNDO)
+    return carregar_imagem(CAMINHO_FUNDO_PARTIDA)
 
 
 def carregar_tela_vitoria():
-    return carregar_imagem(CAMINHO_VITORIA)
-
+    return carregar_imagem(CAMINHO_TELA_VITORIA)
 
 # ==================================================
 # DESENHO DAS CARTAS
@@ -410,10 +403,7 @@ def iniciar_partida(tela, relogio):
             tela.fill((20, 90, 45))
 
         titulo = fonte.render("PYTRUCO", True, DOURADO)
-        tela.blit(
-            titulo,
-            titulo.get_rect(center=(LARGURA // 2, 35)),
-        )
+        tela.blit(titulo, titulo.get_rect(center=(LARGURA // 2, 35)))
 
         placar = fonte_pequena.render(
             f"Você: {partida.pontos_jogador} | "
