@@ -8,20 +8,22 @@ from settings import (
     BRANCO,
     DOURADO,
     PONTOS_PARA_VENCER,
+    CAMINHO_FONTE,
 )
+
 from logica.partida import Partida
 
 
 # ==================================================
-# CARREGAMENTO DAS IMAGENS
+# CAMINHOS E CONFIGURAÇÕES
 # ==================================================
 
 RAIZ_PROJETO = Path(__file__).resolve().parent.parent
 PASTA_CARTAS = RAIZ_PROJETO / "assets" / "cartas"
+PASTA_IMAGENS = RAIZ_PROJETO / "assets" / "imagens"
 
-CAMINHO_FUNDO = (
-    RAIZ_PROJETO / "assets" / "imagens" / "fundo_partida.png"
-)
+CAMINHO_FUNDO = PASTA_IMAGENS / "fundo_partida.png"
+CAMINHO_VITORIA = PASTA_IMAGENS / "tela_vitoria.png"
 
 NAIPES_ARQUIVOS = {
     "Copas": ("copas", "copas"),
@@ -32,6 +34,10 @@ NAIPES_ARQUIVOS = {
 
 VALORES_CARTAS = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
 
+
+# ==================================================
+# CARREGAMENTO DAS IMAGENS
+# ==================================================
 
 def carregar_imagens_cartas():
     imagens = {}
@@ -50,13 +56,21 @@ def carregar_imagens_cartas():
     return imagens
 
 
-def carregar_fundo():
-    if not CAMINHO_FUNDO.exists():
-        print(f"Fundo não encontrado: {CAMINHO_FUNDO}")
+def carregar_imagem(caminho):
+    if not caminho.exists():
+        print(f"Imagem não encontrada: {caminho}")
         return None
 
-    imagem = pygame.image.load(str(CAMINHO_FUNDO))
+    imagem = pygame.image.load(str(caminho))
     return pygame.transform.scale(imagem, (LARGURA, ALTURA))
+
+
+def carregar_fundo():
+    return carregar_imagem(CAMINHO_FUNDO)
+
+
+def carregar_tela_vitoria():
+    return carregar_imagem(CAMINHO_VITORIA)
 
 
 # ==================================================
@@ -76,8 +90,8 @@ def desenhar_carta(
             imagem, (largura, altura)
         )
         tela.blit(imagem_redimensionada, retangulo)
+
     else:
-        # Reserva visual caso uma imagem não seja encontrada.
         pygame.draw.rect(
             tela, BRANCO, retangulo, border_radius=8
         )
@@ -85,12 +99,13 @@ def desenhar_carta(
             tela, (30, 30, 30), retangulo, 2, border_radius=8
         )
 
-        fonte = pygame.font.Font(None, 30)
-        texto = fonte.render(
+        fonte_carta = pygame.font.Font(str(CAMINHO_FONTE), 10)
+        texto = fonte_carta.render(
             f'{carta["valor"]} {carta["naipe"]}',
             True,
             (20, 20, 20),
         )
+
         tela.blit(texto, (x + 5, y + 10))
 
     return retangulo
@@ -102,12 +117,16 @@ def desenhar_carta(
 
 def iniciar_partida(tela, relogio):
     partida = Partida()
+    partida.pontos_jogador = 11
+    partida.pontos_computador = 0
 
     imagens_cartas = carregar_imagens_cartas()
     fundo_partida = carregar_fundo()
+    imagem_vitoria = carregar_tela_vitoria()
 
-    fonte = pygame.font.Font(None, 32)
-    fonte_pequena = pygame.font.Font(None, 25)
+    fonte = pygame.font.Font(str(CAMINHO_FONTE), 20)
+    fonte_pequena = pygame.font.Font(str(CAMINHO_FONTE), 10)
+    fonte_vitoria = pygame.font.Font(str(CAMINHO_FONTE), 64)
 
     carta_jogador = None
     carta_computador = None
@@ -116,7 +135,7 @@ def iniciar_partida(tela, relogio):
 
     aguardando_proxima = False
     encerrada = False
-    executando = True
+    jogador_venceu = False
 
     botao_truco = pygame.Rect(
         LARGURA // 2 - 100, 570, 200, 45
@@ -128,7 +147,11 @@ def iniciar_partida(tela, relogio):
         LARGURA // 2 + 10, 570, 200, 45
     )
 
-    while executando:
+    # ==================================================
+    # LOOP PRINCIPAL
+    # ==================================================
+
+    while True:
         quantidade = len(partida.jogador.cartas)
         espacamento = 120
         inicio_x = (LARGURA - quantidade * espacamento) // 2
@@ -140,6 +163,21 @@ def iniciar_partida(tela, relogio):
             botoes_cartas.append(
                 pygame.Rect(x, 410, 100, 145)
             )
+
+        # ------------------------------------------
+        # DETECTAR FIM DA PARTIDA AUTOMATICAMENTE
+        # ------------------------------------------
+
+        if not encerrada and partida.partida_encerrada():
+            encerrada = True
+            jogador_venceu = (
+                partida.pontos_jogador >= PONTOS_PARA_VENCER
+            )
+
+            if jogador_venceu:
+                mensagem = "Vitória!"
+            else:
+                mensagem = "Fim de jogo!"
 
         # ------------------------------------------
         # EVENTOS
@@ -159,15 +197,20 @@ def iniciar_partida(tela, relogio):
             ):
                 continue
 
+            # Tela final: clique inicia nova partida.
             if encerrada:
                 partida = Partida()
+
                 carta_jogador = None
                 carta_computador = None
-                mensagem = "Nova partida! Clique em uma carta."
+
+                mensagem = "Clique em uma carta para jogar."
                 aguardando_proxima = False
                 encerrada = False
+                jogador_venceu = False
                 continue
 
+            # Responder ao truco do computador.
             if partida.truco_pendente_computador:
                 if botao_aceitar.collidepoint(evento.pos):
                     mensagem = partida.responder_truco(True)
@@ -181,18 +224,18 @@ def iniciar_partida(tela, relogio):
 
                 continue
 
+            # Continuar após uma rodada ou mão.
             if aguardando_proxima:
                 if partida.partida_encerrada():
                     encerrada = True
+                    jogador_venceu = (
+                        partida.pontos_jogador >= PONTOS_PARA_VENCER
+                    )
 
-                    if partida.pontos_jogador >= PONTOS_PARA_VENCER:
-                        mensagem = (
-                            "Voce venceu! Clique para nova partida."
-                        )
-                    else:
-                        mensagem = (
-                            "Computador venceu! Clique para jogar novamente."
-                        )
+                    mensagem = (
+                        "Vitória!" if jogador_venceu
+                        else "Fim de jogo!"
+                    )
 
                 elif (
                     partida.mao_encerrada
@@ -201,7 +244,7 @@ def iniciar_partida(tela, relogio):
                     partida.nova_mao()
                     carta_jogador = None
                     carta_computador = None
-                    mensagem = "Nova mao! Clique em uma carta."
+                    mensagem = "Nova mão! Clique em uma carta."
 
                 else:
                     carta_jogador = None
@@ -211,6 +254,7 @@ def iniciar_partida(tela, relogio):
                 aguardando_proxima = False
                 continue
 
+            # Pedir truco.
             if (
                 botao_truco.collidepoint(evento.pos)
                 and not partida.truco_pedido
@@ -228,6 +272,7 @@ def iniciar_partida(tela, relogio):
 
                 continue
 
+            # Jogar uma carta.
             for indice, retangulo in enumerate(botoes_cartas):
                 if not retangulo.collidepoint(evento.pos):
                     continue
@@ -247,22 +292,22 @@ def iniciar_partida(tela, relogio):
                     )
 
                 elif resultado["vencedor_mao"] == "jogador":
-                    mensagem = "Voce venceu a mao! Clique para continuar."
+                    mensagem = "Você venceu a mão! Clique para continuar."
                     aguardando_proxima = True
 
                 elif resultado["vencedor_mao"] == "computador":
                     mensagem = (
-                        "Computador venceu a mao! Clique para continuar."
+                        "Computador venceu a mão! Clique para continuar."
                     )
                     aguardando_proxima = True
 
                 elif resultado["vencedor_mao"] == "empate":
-                    mensagem = "Mao empatada! Clique para continuar."
+                    mensagem = "Mão empatada! Clique para continuar."
                     aguardando_proxima = True
 
                 elif resultado["resultado"] == "jogador":
                     mensagem = (
-                        "Voce venceu a rodada! Clique para continuar."
+                        "Você venceu a rodada! Clique para continuar."
                     )
                     aguardando_proxima = True
 
@@ -279,7 +324,84 @@ def iniciar_partida(tela, relogio):
                 break
 
         # ------------------------------------------
-        # DESENHAR A INTERFACE
+        # DESENHAR A TELA FINAL
+        # ------------------------------------------
+
+        if encerrada:
+            if jogador_venceu and imagem_vitoria:
+                tela.blit(imagem_vitoria, (0, 0))
+            elif fundo_partida:
+                tela.blit(fundo_partida, (0, 0))
+            else:
+                tela.fill((20, 90, 45))
+
+            if jogador_venceu:
+                texto_vitoria = fonte_vitoria.render(
+                    "Vitória!",
+                    True,
+                    DOURADO,
+                )
+
+                retangulo_vitoria = texto_vitoria.get_rect(
+                    center=(LARGURA // 2, ALTURA // 2 - 30)
+                )
+
+                # Contorno preto
+                for dx in range(-3, 4):
+                    for dy in range(-3, 4):
+                        if dx != 0 or dy != 0:
+                            contorno = fonte_vitoria.render(
+                                "Vitória!",
+                                True,
+                                (0, 0, 0),
+                            )
+                            tela.blit(
+                                contorno,
+                                retangulo_vitoria.move(dx, dy),
+                            )
+
+                # Texto dourado por cima do contorno
+                tela.blit(texto_vitoria, retangulo_vitoria)
+
+                texto_ajuda = fonte_pequena.render(
+                    "CLIQUE PARA JOGAR NOVAMENTE",
+                    True,
+                    BRANCO,
+                )
+
+            else:
+                texto_derrota = fonte.render(
+                    "FIM DE JOGO",
+                    True,
+                    DOURADO,
+                )
+
+                tela.blit(
+                    texto_derrota,
+                    texto_derrota.get_rect(
+                        center=(LARGURA // 2, ALTURA // 2)
+                    ),
+                )
+
+                texto_ajuda = fonte_pequena.render(
+                    "CLIQUE PARA JOGAR NOVAMENTE",
+                    True,
+                    BRANCO,
+                )
+
+            tela.blit(
+                texto_ajuda,
+                texto_ajuda.get_rect(
+                    center=(LARGURA // 2, ALTURA - 50)
+                ),
+            )
+
+            pygame.display.flip()
+            relogio.tick(60)
+            continue
+
+        # ------------------------------------------
+        # DESENHAR A INTERFACE NORMAL
         # ------------------------------------------
 
         if fundo_partida:
@@ -294,7 +416,7 @@ def iniciar_partida(tela, relogio):
         )
 
         placar = fonte_pequena.render(
-            f"Voce: {partida.pontos_jogador}  |  "
+            f"Você: {partida.pontos_jogador} | "
             f"Computador: {partida.pontos_computador}",
             True,
             BRANCO,
@@ -305,7 +427,7 @@ def iniciar_partida(tela, relogio):
         )
 
         texto_valor = fonte_pequena.render(
-            f"Valor da mao: {partida.valor_mao}",
+            f"Valor da mão: {partida.valor_mao}",
             True,
             DOURADO,
         )
@@ -331,12 +453,18 @@ def iniciar_partida(tela, relogio):
 
         if carta_jogador and carta_computador:
             desenhar_carta(
-                tela, carta_jogador,
-                centro_jogador - 50, 165, imagens_cartas
+                tela,
+                carta_jogador,
+                centro_jogador - 50,
+                165,
+                imagens_cartas,
             )
             desenhar_carta(
-                tela, carta_computador,
-                centro_computador - 50, 165, imagens_cartas
+                tela,
+                carta_computador,
+                centro_computador - 50,
+                165,
+                imagens_cartas,
             )
 
         texto = fonte_pequena.render("SUAS CARTAS", True, BRANCO)
@@ -351,6 +479,7 @@ def iniciar_partida(tela, relogio):
                 tela, carta, x, 410, imagens_cartas
             )
 
+        # Botões do truco.
         if partida.truco_pendente_computador:
             pygame.draw.rect(
                 tela, (35, 145, 65), botao_aceitar, border_radius=8
@@ -361,7 +490,8 @@ def iniciar_partida(tela, relogio):
 
             texto = fonte_pequena.render("ACEITAR", True, BRANCO)
             tela.blit(
-                texto, texto.get_rect(center=botao_aceitar.center)
+                texto,
+                texto.get_rect(center=botao_aceitar.center),
             )
 
             pygame.draw.rect(
@@ -373,7 +503,8 @@ def iniciar_partida(tela, relogio):
 
             texto = fonte_pequena.render("CORRER", True, BRANCO)
             tela.blit(
-                texto, texto.get_rect(center=botao_correr.center)
+                texto,
+                texto.get_rect(center=botao_correr.center),
             )
 
         else:
@@ -381,11 +512,12 @@ def iniciar_partida(tela, relogio):
                 not partida.truco_pedido
                 and not partida.mao_encerrada
                 and not aguardando_proxima
-                and not encerrada
             )
 
             cor_botao = (
-                (180, 45, 45) if truco_disponivel else (90, 90, 90)
+                (180, 45, 45)
+                if truco_disponivel
+                else (90, 90, 90)
             )
 
             pygame.draw.rect(
@@ -395,9 +527,12 @@ def iniciar_partida(tela, relogio):
                 tela, DOURADO, botao_truco, 2, border_radius=8
             )
 
-            texto = fonte_pequena.render("PEDIR TRUCO", True, BRANCO)
+            texto = fonte_pequena.render(
+                "PEDIR TRUCO", True, BRANCO
+            )
             tela.blit(
-                texto, texto.get_rect(center=botao_truco.center)
+                texto,
+                texto.get_rect(center=botao_truco.center),
             )
 
         texto_mensagem = fonte_pequena.render(
@@ -418,3 +553,4 @@ def iniciar_partida(tela, relogio):
 
         pygame.display.flip()
         relogio.tick(60)
+

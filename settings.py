@@ -1,4 +1,16 @@
 # Configurações gerais do jogo
+from pathlib import Path
+
+# Assets
+RAIZ_PROJETO = Path(__file__).resolve().parent.parent
+CAMINHO_FONTE = "assets/fontes/Press_Start_2P/PressStart2P-Regular.ttf" #Fonte do jogo
+
+CAMINHO_LOGO = (
+    RAIZ_PROJETO
+    / "assets"
+    / "imagens"
+    / "logo_pytruco.png") # Logo do Pytruco
+
 
 # Configurações da janela
 LARGURA = 1000
@@ -17,5 +29,4 @@ DOURADO = (230, 190, 80)
 PONTOS_PARA_VENCER = 12
 CARTAS_POR_JOGADOR = 3
 
-# Fonte do jogo
-CAMINHO_FONTE = "assets/fontes/Press_Start_2P/PressStart2P-Regular.ttf"
+

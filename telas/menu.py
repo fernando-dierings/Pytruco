@@ -256,21 +256,6 @@ def iniciar_jogo():
             else:
                 tela.fill(VERDE_MESA)
 
-            # Painel central translúcido.
-            painel = pygame.Surface(
-                (430, 430),
-                pygame.SRCALPHA,
-            )
-
-            painel.fill((15, 30, 18, 205))
-
-            tela.blit(
-                painel,
-                painel.get_rect(
-                    center=(LARGURA // 2, 390)
-                ),
-            )
-
             # Logo do PYTRUCO.
             if logo:
                 tela.blit(
