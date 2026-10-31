@@ -30,6 +30,7 @@ CAMINHO_LOGO = PASTA_IMAGENS / "logo_pytruco.png"
 CAMINHO_FUNDO_MENU = PASTA_IMAGENS / "fundo_menu.png"
 CAMINHO_FUNDO_PARTIDA = PASTA_IMAGENS / "fundo_partida.png"
 CAMINHO_TELA_VITORIA = PASTA_IMAGENS / "tela_vitoria.png"
+CAMINHO_BOTAO = PASTA_IMAGENS / "botao1.png"
 
 
 # ==================================================

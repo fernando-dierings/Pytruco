@@ -11,37 +11,11 @@ from settings import (
     BRANCO,
     DOURADO,
     CAMINHO_FONTE,
+    CAMINHO_LOGO,
+    CAMINHO_FUNDO_MENU,
+    CAMINHO_BOTAO
 )
 from telas.partida import iniciar_partida
-
-
-# ==================================================
-# CAMINHOS DOS ASSETS
-# ==================================================
-
-RAIZ_PROJETO = Path(__file__).resolve().parent.parent
-
-CAMINHO_LOGO = (
-    RAIZ_PROJETO
-    / "assets"
-    / "imagens"
-    / "logo_pytruco.png"
-)
-
-CAMINHO_FUNDO = (
-    RAIZ_PROJETO
-    / "assets"
-    / "imagens"
-    / "fundo_menu.png"
-)
-
-CAMINHO_BOTAO = (
-    RAIZ_PROJETO
-    / "assets"
-    / "imagens"
-    / "botao1.png"
-)
-
 
 # ==================================================
 # CARREGAMENTO DAS IMAGENS
@@ -63,11 +37,11 @@ def carregar_logo():
 
 
 def carregar_fundo():
-    if not CAMINHO_FUNDO.exists():
-        print(f"Imagem de fundo não encontrada: {CAMINHO_FUNDO}")
+    if not CAMINHO_FUNDO_MENU.exists():
+        print(f"Imagem de fundo não encontrada: {CAMINHO_FUNDO_MENU}")
         return None
 
-    imagem = pygame.image.load(str(CAMINHO_FUNDO))
+    imagem = pygame.image.load(str(CAMINHO_FUNDO_MENU))
     return pygame.transform.scale(imagem, (LARGURA, ALTURA))
 
 def carregar_imagem_botao():

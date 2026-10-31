@@ -6,6 +6,7 @@ class Jogador:
 
     def receber_cartas(self, cartas):
         self.cartas = cartas
+        self.cartas_jogadas = []
 
     def jogar_carta(self, indice):
         if 0 <= indice < len(self.cartas):
