@@ -13,7 +13,8 @@ from settings import (
     CAMINHO_FONTE,
     CAMINHO_LOGO,
     CAMINHO_FUNDO_MENU,
-    CAMINHO_BOTAO
+    CAMINHO_BOTAO,
+    CAMINHO_MUSICA_MENU
 )
 from telas.partida import iniciar_partida
 
@@ -145,6 +146,22 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
             ),
         )
 
+# ==================================================
+# MÚSICA DO MENU
+# ==================================================
+
+def iniciar_musica_menu():
+    if not CAMINHO_MUSICA_MENU.exists():
+        print(f"Música não encontrada: {CAMINHO_MUSICA_MENU}")
+        return
+
+    pygame.mixer.music.load(str(CAMINHO_MUSICA_MENU))
+    pygame.mixer.music.set_volume(0.35)
+    pygame.mixer.music.play(-1)
+
+
+def parar_musica_menu():
+    pygame.mixer.music.stop()
 
 # ==================================================
 # MENU PRINCIPAL
@@ -152,6 +169,7 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
 
 def iniciar_jogo():
     pygame.init()
+    iniciar_musica_menu()
 
     tela = pygame.display.set_mode((LARGURA, ALTURA))
     pygame.display.set_caption(TITULO)
@@ -201,10 +219,15 @@ def iniciar_jogo():
                 if tela_atual == "menu":
 
                     if botao_jogar.collidepoint(evento.pos):
+
+                        parar_musica_menu()
+
                         resultado = iniciar_partida(tela, relogio)
 
                         if resultado == "sair":
                             executando = False
+                        else:
+                            iniciar_musica_menu()
 
                     elif botao_regras.collidepoint(evento.pos):
                         tela_atual = "regras"
