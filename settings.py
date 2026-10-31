@@ -34,7 +34,8 @@ CAMINHO_TELA_DERROTA = PASTA_IMAGENS / "tela_derrota.png"
 CAMINHO_TELA_VITORIA = PASTA_IMAGENS / "tela_vitoria.png"
 CAMINHO_BOTAO = PASTA_IMAGENS / "botao1.png"
 CAMINHO_MUSICA_MENU = PASTA_SONS / "musica_menu.mp3"
-
+CAMINHO_MUSICA_PARTIDA = PASTA_SONS / "musica_partida.mp3"
+CAMINHO_VERSO_CARTA = PASTA_CARTAS / "verso_carta.png"
 
 
 # ==================================================

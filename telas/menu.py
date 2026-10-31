@@ -156,7 +156,7 @@ def iniciar_musica_menu():
         return
 
     pygame.mixer.music.load(str(CAMINHO_MUSICA_MENU))
-    pygame.mixer.music.set_volume(0.35)
+    pygame.mixer.music.set_volume(0.10)
     pygame.mixer.music.play(-1)
 
 
@@ -308,6 +308,7 @@ def iniciar_jogo():
         pygame.display.flip()
         relogio.tick(FPS)
 
+    pygame.mixer.music.stop()
     pygame.quit()
 
 

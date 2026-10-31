@@ -9,13 +9,16 @@ from settings import (
     PONTOS_PARA_VENCER,
     CAMINHO_FONTE,
     CAMINHO_FUNDO_PARTIDA,
+    CAMINHO_MUSICA_PARTIDA,
     CAMINHO_TELA_DERROTA,
     CAMINHO_TELA_VITORIA,
-    PASTA_CARTAS,
+    CAMINHO_VERSO_CARTA,
+    PASTA_CARTAS
 )
 
 from logica.partida import Partida
 from utils.recursos import desenhar_texto_contornado
+
 
 # ==================================================
 # CAMINHOS E CONFIGURAÇÕES
@@ -68,6 +71,15 @@ def carregar_fundo():
 def carregar_tela_vitoria():
     return carregar_imagem(CAMINHO_TELA_VITORIA)
 
+
+def carregar_verso_carta():
+    if not CAMINHO_VERSO_CARTA.exists():
+        print(f"Verso da carta não encontrado: {CAMINHO_VERSO_CARTA}")
+        return None
+
+    return pygame.image.load(str(CAMINHO_VERSO_CARTA)).convert_alpha()
+
+
 # ==================================================
 # DESENHO DAS CARTAS
 # ==================================================
@@ -106,17 +118,48 @@ def desenhar_carta(
     return retangulo
 
 
+def desenhar_verso_carta(
+    tela, imagem, x, y, largura=100, altura=145
+):
+    retangulo = pygame.Rect(x, y, largura, altura)
+
+    if imagem:
+        imagem_redimensionada = pygame.transform.smoothscale(
+            imagem, (largura, altura)
+        )
+        tela.blit(imagem_redimensionada, retangulo)
+
+    else:
+        pygame.draw.rect(
+            tela, BRANCO, retangulo, border_radius=8
+        )
+        pygame.draw.rect(
+            tela, PRETO, retangulo, 2, border_radius=8
+        )
+
+    return retangulo
+
+
 # ==================================================
 # TELA DA PARTIDA
 # ==================================================
 
 def iniciar_partida(tela, relogio):
     partida = Partida()
+
+    if CAMINHO_MUSICA_PARTIDA.exists():
+        pygame.mixer.music.load(str(CAMINHO_MUSICA_PARTIDA))
+        pygame.mixer.music.set_volume(0.10)
+        pygame.mixer.music.play(-1)
+    else:
+        print(f"Música da partida não encontrada: {CAMINHO_MUSICA_PARTIDA}")
+
     partida.pontos_jogador = 0
     partida.pontos_computador = 11
 
     imagens_cartas = carregar_imagens_cartas()
     fundo_partida = carregar_fundo()
+    imagem_verso_carta = carregar_verso_carta()
     imagem_vitoria = carregar_tela_vitoria()
     imagem_derrota = carregar_imagem(CAMINHO_TELA_DERROTA)
 
@@ -133,14 +176,17 @@ def iniciar_partida(tela, relogio):
     encerrada = False
     jogador_venceu = False
 
+    # Botões na parte verde, no canto inferior direito
     botao_truco = pygame.Rect(
-        LARGURA // 2 - 100, 570, 200, 45
+        LARGURA - 240, ALTURA - 80, 200, 45
     )
+
     botao_aceitar = pygame.Rect(
-        LARGURA // 2 - 210, 570, 200, 45
+        LARGURA - 240, ALTURA - 132, 200, 45
     )
+
     botao_correr = pygame.Rect(
-        LARGURA // 2 + 10, 570, 200, 45
+        LARGURA - 240, ALTURA - 80, 200, 45
     )
 
     # ==================================================
@@ -157,7 +203,7 @@ def iniciar_partida(tela, relogio):
         for indice, carta in enumerate(partida.jogador.cartas):
             x = inicio_x + indice * espacamento
             botoes_cartas.append(
-                pygame.Rect(x, 410, 100, 145)
+                pygame.Rect(x, 445, 100, 145)
             )
 
         # ------------------------------------------
@@ -181,10 +227,12 @@ def iniciar_partida(tela, relogio):
 
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
+                pygame.mixer.music.stop()
                 return "sair"
 
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
+                    pygame.mixer.music.stop()
                     return "menu"
 
             if (
@@ -333,7 +381,6 @@ def iniciar_partida(tela, relogio):
             else:
                 tela.fill((20, 90, 45))
 
-            # Texto de vitória ou derrota
             if jogador_venceu:
                 desenhar_texto_contornado(
                     tela,
@@ -351,7 +398,6 @@ def iniciar_partida(tela, relogio):
                     (LARGURA // 2, ALTURA // 2)
                 )
 
-            # Texto de ajuda
             texto_ajuda = fonte_pequena.render(
                 "CLIQUE PARA JOGAR NOVAMENTE",
                 True,
@@ -378,96 +424,168 @@ def iniciar_partida(tela, relogio):
         else:
             tela.fill((20, 90, 45))
 
+        # Título.
         titulo = fonte.render("PYTRUCO", True, DOURADO)
-        tela.blit(titulo, titulo.get_rect(center=(LARGURA // 2, 35)))
+        tela.blit(
+            titulo,
+            titulo.get_rect(center=(LARGURA // 2, 35))
+        )
 
+        # Placar no canto superior esquerdo
         placar = fonte_pequena.render(
-            f"Você: {partida.pontos_jogador} | "
-            f"Computador: {partida.pontos_computador}",
+            f"VOCÊ: {partida.pontos_jogador} | "
+            f"COMPUTADOR: {partida.pontos_computador}",
             True,
             BRANCO,
         )
-        tela.blit(
-            placar,
-            placar.get_rect(center=(LARGURA // 2, 80)),
-        )
 
+        tela.blit(placar, (35, 35))
+
+        # Valor da mão no canto inferior esquerdo
         texto_valor = fonte_pequena.render(
-            f"Valor da mão: {partida.valor_mao}",
+            f"VALOR DA MÃO: {partida.valor_mao}",
             True,
             DOURADO,
         )
+
         tela.blit(
             texto_valor,
-            texto_valor.get_rect(center=(LARGURA // 2, 110)),
+            (35, ALTURA - 35 - texto_valor.get_height())
         )
 
-        centro_jogador = LARGURA // 2 - 70
-        centro_computador = LARGURA // 2 + 70
+        # ==========================================
+        # CARTAS DO COMPUTADOR
+        # ==========================================
 
-        texto = fonte_pequena.render("SUA CARTA", True, BRANCO)
-        tela.blit(
-            texto,
-            texto.get_rect(center=(centro_jogador, 145)),
+        espacamento_versos = 120
+        cartas_restantes_computador = len(partida.computador.cartas)
+
+        largura_total = (
+                cartas_restantes_computador * 100
+                + (cartas_restantes_computador - 1) * (espacamento_versos - 100)
         )
 
-        texto = fonte_pequena.render("COMPUTADOR", True, BRANCO)
-        tela.blit(
-            texto,
-            texto.get_rect(center=(centro_computador, 145)),
-        )
+        inicio_versos = (LARGURA - largura_total) // 2
 
-        if carta_jogador and carta_computador:
+        for indice in range(cartas_restantes_computador):
+            x = inicio_versos + indice * espacamento_versos
+
+            desenhar_verso_carta(
+                tela,
+                imagem_verso_carta,
+                x,
+                120,
+            )
+
+        # ==========================================
+        # CARTAS JOGADAS NO CENTRO
+        # ==========================================
+
+        centro_jogador = LARGURA // 2 - 60
+        centro_computador = LARGURA // 2 + 60
+
+        if carta_jogador is not None and carta_computador is not None:
+
+            # Sua carta com a face visível.
             desenhar_carta(
                 tela,
                 carta_jogador,
                 centro_jogador - 50,
-                165,
+                320,
                 imagens_cartas,
             )
+
+            # Carta do computador com a face visível.
             desenhar_carta(
                 tela,
                 carta_computador,
                 centro_computador - 50,
-                165,
+                290,
                 imagens_cartas,
             )
 
-        texto = fonte_pequena.render("SUAS CARTAS", True, BRANCO)
-        tela.blit(
-            texto,
-            texto.get_rect(center=(LARGURA // 2, 370)),
-        )
+        # ==========================================
+        # SUAS CARTAS DISPONÍVEIS
+        # ==========================================
+
+        # ==========================================
+        # SUAS CARTAS DISPONÍVEIS
+        # ==========================================
+
+        pos_mouse = pygame.mouse.get_pos()
 
         for indice, carta in enumerate(partida.jogador.cartas):
             x = inicio_x + indice * espacamento
-            desenhar_carta(
-                tela, carta, x, 410, imagens_cartas
+            y = 465
+
+            retangulo = pygame.Rect(x, y, 100, 145)
+
+            # Verifica se o mouse está sobre a carta
+            mouse_sobre_carta = retangulo.collidepoint(pos_mouse)
+
+            # Só destaca cartas que podem ser jogadas
+            carta_disponivel = (
+                    not aguardando_proxima
+                    and not partida.truco_pendente_computador
+                    and not partida.mao_encerrada
+                    and not encerrada
             )
 
-        # Botões do truco.
+            if mouse_sobre_carta and carta_disponivel:
+                largura = 110
+                altura = 160
+                x_desenho = x - 5
+                y_desenho = y - 15
+            else:
+                largura = 100
+                altura = 145
+                x_desenho = x
+                y_desenho = y
+
+            desenhar_carta(
+                tela,
+                carta,
+                x_desenho,
+                y_desenho,
+                imagens_cartas,
+                largura,
+                altura,
+            )
+
+        # ==========================================
+        # BOTÕES DO TRUCO
+        # ==========================================
+
         if partida.truco_pendente_computador:
             pygame.draw.rect(
-                tela, (35, 145, 65), botao_aceitar, border_radius=8
+                tela, (35, 145, 65),
+                botao_aceitar, border_radius=8
             )
             pygame.draw.rect(
-                tela, DOURADO, botao_aceitar, 2, border_radius=8
+                tela, DOURADO,
+                botao_aceitar, 2, border_radius=8
             )
 
-            texto = fonte_pequena.render("ACEITAR", True, BRANCO)
+            texto = fonte_pequena.render(
+                "ACEITAR", True, BRANCO
+            )
             tela.blit(
                 texto,
                 texto.get_rect(center=botao_aceitar.center),
             )
 
             pygame.draw.rect(
-                tela, (180, 45, 45), botao_correr, border_radius=8
+                tela, (180, 45, 45),
+                botao_correr, border_radius=8
             )
             pygame.draw.rect(
-                tela, DOURADO, botao_correr, 2, border_radius=8
+                tela, DOURADO,
+                botao_correr, 2, border_radius=8
             )
 
-            texto = fonte_pequena.render("CORRER", True, BRANCO)
+            texto = fonte_pequena.render(
+                "CORRER", True, BRANCO
+            )
             tela.blit(
                 texto,
                 texto.get_rect(center=botao_correr.center),
@@ -487,10 +605,12 @@ def iniciar_partida(tela, relogio):
             )
 
             pygame.draw.rect(
-                tela, cor_botao, botao_truco, border_radius=8
+                tela, cor_botao,
+                botao_truco, border_radius=8
             )
             pygame.draw.rect(
-                tela, DOURADO, botao_truco, 2, border_radius=8
+                tela, DOURADO,
+                botao_truco, 2, border_radius=8
             )
 
             texto = fonte_pequena.render(
@@ -501,22 +621,26 @@ def iniciar_partida(tela, relogio):
                 texto.get_rect(center=botao_truco.center),
             )
 
+        # Mensagem.
         texto_mensagem = fonte_pequena.render(
             mensagem, True, DOURADO
         )
         tela.blit(
             texto_mensagem,
-            texto_mensagem.get_rect(center=(LARGURA // 2, 630)),
+            texto_mensagem.get_rect(
+                center=(LARGURA // 2, 660)
+            ),
         )
 
+        # Atalho para voltar ao menu no canto inferior esquerdo
         ajuda = fonte_pequena.render(
-            "ESC: voltar ao menu", True, BRANCO
+            "ESC: VOLTAR AO MENU", True, BRANCO
         )
+
         tela.blit(
             ajuda,
-            ajuda.get_rect(center=(LARGURA // 2, 675)),
+            (35, ALTURA - 7 - ajuda.get_height())
         )
 
         pygame.display.flip()
         relogio.tick(60)
-
