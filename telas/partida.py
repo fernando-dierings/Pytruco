@@ -9,11 +9,13 @@ from settings import (
     PONTOS_PARA_VENCER,
     CAMINHO_FONTE,
     CAMINHO_FUNDO_PARTIDA,
+    CAMINHO_TELA_DERROTA,
     CAMINHO_TELA_VITORIA,
     PASTA_CARTAS,
 )
 
 from logica.partida import Partida
+from utils.recursos import desenhar_texto_contornado
 
 # ==================================================
 # CAMINHOS E CONFIGURAÇÕES
@@ -110,12 +112,13 @@ def desenhar_carta(
 
 def iniciar_partida(tela, relogio):
     partida = Partida()
-    partida.pontos_jogador = 11
-    partida.pontos_computador = 0
+    partida.pontos_jogador = 0
+    partida.pontos_computador = 11
 
     imagens_cartas = carregar_imagens_cartas()
     fundo_partida = carregar_fundo()
     imagem_vitoria = carregar_tela_vitoria()
+    imagem_derrota = carregar_imagem(CAMINHO_TELA_DERROTA)
 
     fonte = pygame.font.Font(str(CAMINHO_FONTE), 20)
     fonte_pequena = pygame.font.Font(str(CAMINHO_FONTE), 10)
@@ -321,66 +324,39 @@ def iniciar_partida(tela, relogio):
         # ------------------------------------------
 
         if encerrada:
-            if jogador_venceu and imagem_vitoria:
-                tela.blit(imagem_vitoria, (0, 0))
+            imagem_final = imagem_vitoria if jogador_venceu else imagem_derrota
+
+            if imagem_final:
+                tela.blit(imagem_final, (0, 0))
             elif fundo_partida:
                 tela.blit(fundo_partida, (0, 0))
             else:
                 tela.fill((20, 90, 45))
 
+            # Texto de vitória ou derrota
             if jogador_venceu:
-                texto_vitoria = fonte_vitoria.render(
+                desenhar_texto_contornado(
+                    tela,
+                    fonte_vitoria,
                     "Vitória!",
-                    True,
                     DOURADO,
+                    (LARGURA // 2, ALTURA // 2 - 30)
                 )
-
-                retangulo_vitoria = texto_vitoria.get_rect(
-                    center=(LARGURA // 2, ALTURA // 2 - 30)
-                )
-
-                # Contorno preto
-                for dx in range(-3, 4):
-                    for dy in range(-3, 4):
-                        if dx != 0 or dy != 0:
-                            contorno = fonte_vitoria.render(
-                                "Vitória!",
-                                True,
-                                (0, 0, 0),
-                            )
-                            tela.blit(
-                                contorno,
-                                retangulo_vitoria.move(dx, dy),
-                            )
-
-                # Texto dourado por cima do contorno
-                tela.blit(texto_vitoria, retangulo_vitoria)
-
-                texto_ajuda = fonte_pequena.render(
-                    "CLIQUE PARA JOGAR NOVAMENTE",
-                    True,
-                    BRANCO,
-                )
-
             else:
-                texto_derrota = fonte.render(
-                    "FIM DE JOGO",
-                    True,
+                desenhar_texto_contornado(
+                    tela,
+                    fonte_vitoria,
+                    "DERROTA!",
                     DOURADO,
+                    (LARGURA // 2, ALTURA // 2)
                 )
 
-                tela.blit(
-                    texto_derrota,
-                    texto_derrota.get_rect(
-                        center=(LARGURA // 2, ALTURA // 2)
-                    ),
-                )
-
-                texto_ajuda = fonte_pequena.render(
-                    "CLIQUE PARA JOGAR NOVAMENTE",
-                    True,
-                    BRANCO,
-                )
+            # Texto de ajuda
+            texto_ajuda = fonte_pequena.render(
+                "CLIQUE PARA JOGAR NOVAMENTE",
+                True,
+                BRANCO,
+            )
 
             tela.blit(
                 texto_ajuda,

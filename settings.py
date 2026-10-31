@@ -1,6 +1,7 @@
 
 # Configurações gerais do jogo
 from pathlib import Path
+import pygame
 
 
 # ==================================================
@@ -29,8 +30,10 @@ CAMINHO_FONTE = (
 CAMINHO_LOGO = PASTA_IMAGENS / "logo_pytruco.png"
 CAMINHO_FUNDO_MENU = PASTA_IMAGENS / "fundo_menu.png"
 CAMINHO_FUNDO_PARTIDA = PASTA_IMAGENS / "fundo_partida.png"
+CAMINHO_TELA_DERROTA = PASTA_IMAGENS / "tela_derrota.png"
 CAMINHO_TELA_VITORIA = PASTA_IMAGENS / "tela_vitoria.png"
 CAMINHO_BOTAO = PASTA_IMAGENS / "botao1.png"
+
 
 
 # ==================================================
@@ -53,10 +56,17 @@ PRETO = (0, 0, 0)
 VERMELHO = (200, 40, 40)
 DOURADO = (230, 190, 80)
 
+# ==================================================
+# CORES (RGB)
+# ==================================================
+COR_CONTORNO = PRETO
+ESPESSURA_CONTORNO = 3
+
 
 # ==================================================
-# CONFIGURAÇÕES DA PARTIDA
+# CONFIGURAÇÕES DE CONTORNO
 # ==================================================
+
 
 PONTOS_PARA_VENCER = 12
 CARTAS_POR_JOGADOR = 3
