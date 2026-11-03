@@ -13,7 +13,7 @@ from settings import (
     CAMINHO_TELA_DERROTA,
     CAMINHO_TELA_VITORIA,
     CAMINHO_VERSO_CARTA,
-    PASTA_CARTAS
+    PASTA_CARTAS, AMARELO
 )
 
 from logica.partida import Partida
@@ -164,6 +164,7 @@ def iniciar_partida(tela, relogio):
     imagem_derrota = carregar_imagem(CAMINHO_TELA_DERROTA)
 
     fonte = pygame.font.Font(str(CAMINHO_FONTE), 20)
+    fonte_media = pygame.font.Font(str(CAMINHO_FONTE), 35)
     fonte_pequena = pygame.font.Font(str(CAMINHO_FONTE), 10)
     fonte_vitoria = pygame.font.Font(str(CAMINHO_FONTE), 64)
 
@@ -425,10 +426,10 @@ def iniciar_partida(tela, relogio):
             tela.fill((20, 90, 45))
 
         # Título.
-        titulo = fonte.render("PYTRUCO", True, DOURADO)
+        titulo = fonte_media.render("PYTRUCO", True, AMARELO)
         tela.blit(
             titulo,
-            titulo.get_rect(center=(LARGURA // 2, 35))
+            titulo.get_rect(center=(LARGURA // 2, 30))
         )
 
         # Placar no canto superior esquerdo
