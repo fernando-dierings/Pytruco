@@ -1,3 +1,5 @@
+
+
 import random
 
 from logica.baralho import (
@@ -12,6 +14,7 @@ from logica.regras_truco import (
     vencedor_da_rodada,
     comparar_cartas,
 )
+
 
 class Partida:
     def __init__(self):
@@ -30,6 +33,12 @@ class Partida:
         self.rodada = 0
         self.resultados_rodadas = []
 
+        # Alternância de quem começa cada nova mão.
+        self.proximo_a_comecar_mao = "jogador"
+
+        self.quem_comeca_mao = None
+        self.quem_comeca_rodada = None
+
         self.nova_mao()
 
     def nova_mao(self):
@@ -39,6 +48,7 @@ class Partida:
         self.jogador.receber_cartas(
             distribuir_cartas(self.baralho)
         )
+
         self.computador.receber_cartas(
             distribuir_cartas(self.baralho)
         )
@@ -50,6 +60,16 @@ class Partida:
         self.truco_pedido = False
         self.truco_pendente_computador = False
         self.mao_encerrada = False
+
+        # Define quem começa esta mão.
+        self.quem_comeca_mao = self.proximo_a_comecar_mao
+        self.quem_comeca_rodada = self.quem_comeca_mao
+
+        # Alterna o jogador que começará a próxima mão.
+        if self.proximo_a_comecar_mao == "jogador":
+            self.proximo_a_comecar_mao = "computador"
+        else:
+            self.proximo_a_comecar_mao = "jogador"
 
     def pedir_truco(self):
         if self.mao_encerrada:
@@ -67,6 +87,7 @@ class Partida:
 
         if aceita:
             self.valor_mao = 2
+
             return {
                 "status": "aceito",
                 "mensagem": (
@@ -134,9 +155,13 @@ class Partida:
             else "empate"
         )
 
-    def jogar_rodada(self, indice_jogador):
+    # Jogador começa a rodada.
+    def iniciar_rodada(self, indice_jogador):
         if self.mao_encerrada:
             return "A mão já terminou."
+
+        if self.quem_comeca_rodada != "jogador":
+            return "O computador deve jogar primeiro."
 
         if not self.jogador.tem_cartas():
             return "Você não tem mais cartas."
@@ -151,14 +176,79 @@ class Partida:
         if carta_jogador is None:
             return "Índice de carta inválido."
 
-        indice_computador = self.escolher_carta_computador(
-            carta_jogador
+        return {
+            "carta_jogador": carta_jogador,
+            "quem_jogou_primeiro": "jogador",
+        }
+
+    # Jogador responde quando o computador começa.
+    def jogar_resposta_jogador(self, indice_jogador):
+        if self.mao_encerrada:
+            return "A mão já terminou."
+
+        if self.quem_comeca_rodada != "computador":
+            return "Você não está respondendo ao computador."
+
+        if not self.jogador.tem_cartas():
+            return "Você não tem mais cartas."
+
+        carta_jogador = self.jogador.jogar_carta(
+            indice_jogador
         )
 
-        carta_computador = self.computador.jogar_carta(
-            indice_computador
+        if carta_jogador is None:
+            return "Índice de carta inválido."
+
+        return {
+            "carta_jogador": carta_jogador,
+        }
+
+    # Computador começa a rodada.
+    def iniciar_rodada_computador(self):
+        if self.mao_encerrada:
+            return "A mão já terminou."
+
+        if self.quem_comeca_rodada != "computador":
+            return "Você deve jogar primeiro."
+
+        if not self.computador.tem_cartas():
+            return "O computador não tem mais cartas."
+
+        indice = self.escolher_carta_inicial_computador()
+
+        carta_computador = self.computador.jogar_carta(indice)
+
+        return {
+            "carta_computador": carta_computador,
+            "quem_jogou_primeiro": "computador",
+        }
+
+    # Computador escolhe uma carta para iniciar a rodada.
+    def escolher_carta_inicial_computador(self):
+        cartas = self.computador.cartas
+
+        return min(
+            range(len(cartas)),
+            key=lambda i: self.forca_da_carta(cartas[i])
         )
 
+    # Resolve a rodada depois que os dois jogaram.
+    def concluir_rodada(
+        self,
+        carta_jogador,
+        carta_computador=None
+    ):
+        # Se o jogador começou, o computador responde agora.
+        if carta_computador is None:
+            indice_computador = self.escolher_carta_computador(
+                carta_jogador
+            )
+
+            carta_computador = self.computador.jogar_carta(
+                indice_computador
+            )
+
+        # Compara as cartas.
         resultado = vencedor_da_rodada(
             carta_jogador,
             carta_computador,
@@ -166,6 +256,20 @@ class Partida:
 
         self.resultados_rodadas.append(resultado)
         self.rodada += 1
+
+        # Define quem começa a próxima rodada.
+        if resultado == "jogador":
+            self.quem_comeca_rodada = "jogador"
+
+        elif resultado == "computador":
+            self.quem_comeca_rodada = "computador"
+
+        else:
+            # Em caso de empate, começa quem jogou em segundo.
+            if self.quem_comeca_rodada == "jogador":
+                self.quem_comeca_rodada = "computador"
+            else:
+                self.quem_comeca_rodada = "jogador"
 
         vencedor_mao = None
 
@@ -200,13 +304,13 @@ class Partida:
             computador_pediu_truco = True
 
         return {
-            "carta_jogador": carta_jogador,
             "carta_computador": carta_computador,
             "resultado": resultado,
             "rodada": self.rodada,
             "vencedor_mao": vencedor_mao,
             "valor_mao": self.valor_mao,
             "computador_pediu_truco": computador_pediu_truco,
+            "quem_comeca_proxima_rodada": self.quem_comeca_rodada,
         }
 
     def escolher_carta_computador(self, carta_jogador):
@@ -215,7 +319,6 @@ class Partida:
         if not cartas:
             return 0
 
-        # Identifica as cartas que vencem a carta do jogador.
         vencedoras = [
             i
             for i, carta in enumerate(cartas)
@@ -223,13 +326,11 @@ class Partida:
         ]
 
         if vencedoras:
-            # Vence gastando a carta mais fraca possível.
             return min(
                 vencedoras,
                 key=lambda i: self.forca_da_carta(cartas[i])
             )
 
-        # Se não puder vencer, descarta a carta mais fraca.
         return min(
             range(len(cartas)),
             key=lambda i: self.forca_da_carta(cartas[i])

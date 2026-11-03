@@ -1,3 +1,4 @@
+
 import pygame
 
 from settings import (
@@ -13,7 +14,10 @@ from settings import (
     CAMINHO_TELA_DERROTA,
     CAMINHO_TELA_VITORIA,
     CAMINHO_VERSO_CARTA,
-    PASTA_CARTAS, AMARELO
+    CAMINHO_SOM_CARTA_JOGADOR,
+    CAMINHO_SOM_CARTA_COMPUTADOR,
+    PASTA_CARTAS,
+    AMARELO,
 )
 
 from logica.partida import Partida
@@ -154,8 +158,18 @@ def iniciar_partida(tela, relogio):
     else:
         print(f"Música da partida não encontrada: {CAMINHO_MUSICA_PARTIDA}")
 
-    partida.pontos_jogador = 0
-    partida.pontos_computador = 11
+    # Efeitos sonoros das cartas
+    som_carta_jogador = pygame.mixer.Sound(
+        str(CAMINHO_SOM_CARTA_JOGADOR)
+    )
+
+    som_carta_computador = pygame.mixer.Sound(
+        str(CAMINHO_SOM_CARTA_COMPUTADOR)
+    )
+
+    som_carta_jogador.set_volume(0.5)
+    som_carta_computador.set_volume(0.5)
+
 
     imagens_cartas = carregar_imagens_cartas()
     fundo_partida = carregar_fundo()
@@ -163,13 +177,26 @@ def iniciar_partida(tela, relogio):
     imagem_vitoria = carregar_tela_vitoria()
     imagem_derrota = carregar_imagem(CAMINHO_TELA_DERROTA)
 
-    fonte = pygame.font.Font(str(CAMINHO_FONTE), 20)
     fonte_media = pygame.font.Font(str(CAMINHO_FONTE), 35)
     fonte_pequena = pygame.font.Font(str(CAMINHO_FONTE), 10)
     fonte_vitoria = pygame.font.Font(str(CAMINHO_FONTE), 64)
 
     carta_jogador = None
     carta_computador = None
+    computador_ja_comecou = False
+    carta_jogador_pendente = None
+    carta_computador_pendente = None
+
+    carta_jogador_pendente = None
+    carta_computador_pendente = None
+
+    tempo_jogada = 0
+    computador_ja_comecou = False
+
+    # Guarda a carta enquanto o computador aguarda para jogar.
+    carta_jogador_pendente = None
+
+    tempo_jogada = 0
 
     mensagem = "Clique em uma carta para jogar."
 
@@ -177,7 +204,6 @@ def iniciar_partida(tela, relogio):
     encerrada = False
     jogador_venceu = False
 
-    # Botões na parte verde, no canto inferior direito
     botao_truco = pygame.Rect(
         LARGURA - 240, ALTURA - 80, 200, 45
     )
@@ -206,6 +232,89 @@ def iniciar_partida(tela, relogio):
             botoes_cartas.append(
                 pygame.Rect(x, 445, 100, 145)
             )
+
+        # ------------------------------------------
+        # ESPERA PARA O COMPUTADOR JOGAR
+        # ------------------------------------------
+        # ------------------------------------------
+        # COMPUTADOR COMEÇA A RODADA
+        # ------------------------------------------
+
+        if (
+            partida.quem_comeca_rodada == "computador"
+            and not computador_ja_comecou
+            and not aguardando_proxima
+            and not partida.mao_encerrada
+            and not partida.truco_pendente_computador
+        ):
+            resultado_inicio = partida.iniciar_rodada_computador()
+
+            if isinstance(resultado_inicio, dict):
+                carta_computador = resultado_inicio["carta_computador"]
+
+                som_carta_computador.play()
+
+                computador_ja_comecou = True
+                tempo_jogada = pygame.time.get_ticks()
+
+                mensagem = "O computador jogou. Sua vez!"
+
+            else:
+                mensagem = resultado_inicio
+
+        # ------------------------------------------
+        # ESPERA PARA O JOGADOR RESPONDER
+        # ------------------------------------------
+
+        if (
+            computador_ja_comecou
+            and pygame.time.get_ticks() - tempo_jogada >= 1000
+        ):
+            mensagem = "Sua vez! Escolha uma carta."
+
+        # ------------------------------------------
+        # COMPUTADOR RESPONDE QUANDO VOCÊ COMEÇA
+        # ------------------------------------------
+
+        if (
+            carta_jogador_pendente is not None
+            and pygame.time.get_ticks() - tempo_jogada >= 1000
+        ):
+            resultado = partida.concluir_rodada(
+                carta_jogador_pendente
+            )
+
+            carta_computador = resultado["carta_computador"]
+            som_carta_computador.play()
+
+            carta_jogador_pendente = None
+
+            if resultado["computador_pediu_truco"]:
+                mensagem = "O computador pediu TRUCO! Aceita ou corre?"
+
+            elif resultado["vencedor_mao"] == "jogador":
+                mensagem = "Você venceu a mão! Clique para continuar."
+                aguardando_proxima = True
+
+            elif resultado["vencedor_mao"] == "computador":
+                mensagem = "Computador venceu a mão! Clique para continuar."
+                aguardando_proxima = True
+
+            elif resultado["vencedor_mao"] == "empate":
+                mensagem = "Mão empatada! Clique para continuar."
+                aguardando_proxima = True
+
+            elif resultado["resultado"] == "jogador":
+                mensagem = "Você venceu a rodada! Clique para continuar."
+                aguardando_proxima = True
+
+            elif resultado["resultado"] == "computador":
+                mensagem = "Computador venceu a rodada! Clique para continuar."
+                aguardando_proxima = True
+
+            else:
+                mensagem = "Rodada empatada! Clique para continuar."
+                aguardando_proxima = True
 
         # ------------------------------------------
         # DETECTAR FIM DA PARTIDA AUTOMATICAMENTE
@@ -248,11 +357,16 @@ def iniciar_partida(tela, relogio):
 
                 carta_jogador = None
                 carta_computador = None
+                carta_jogador_pendente = None
 
                 mensagem = "Clique em uma carta para jogar."
                 aguardando_proxima = False
                 encerrada = False
                 jogador_venceu = False
+                continue
+
+            # Bloqueia outros cliques enquanto o computador aguarda.
+            if carta_jogador_pendente is not None:
                 continue
 
             # Responder ao truco do computador.
@@ -287,6 +401,7 @@ def iniciar_partida(tela, relogio):
                     or not partida.jogador.tem_cartas()
                 ):
                     partida.nova_mao()
+
                     carta_jogador = None
                     carta_computador = None
                     mensagem = "Nova mão! Clique em uma carta."
@@ -318,53 +433,80 @@ def iniciar_partida(tela, relogio):
                 continue
 
             # Jogar uma carta.
+            # Jogar uma carta.
             for indice, retangulo in enumerate(botoes_cartas):
                 if not retangulo.collidepoint(evento.pos):
                     continue
 
-                resultado = partida.jogar_rodada(indice)
+                # Caso você comece a rodada.
+                if partida.quem_comeca_rodada == "jogador":
+                    resultado = partida.iniciar_rodada(indice)
 
-                if not isinstance(resultado, dict):
-                    mensagem = resultado
-                    break
+                    if not isinstance(resultado, dict):
+                        mensagem = resultado
+                        break
 
-                carta_jogador = resultado["carta_jogador"]
-                carta_computador = resultado["carta_computador"]
+                    carta_jogador = resultado["carta_jogador"]
+                    carta_jogador_pendente = carta_jogador
+                    tempo_jogada = pygame.time.get_ticks()
 
-                if resultado["computador_pediu_truco"]:
-                    mensagem = (
-                        "O computador pediu TRUCO! Aceita ou corre?"
-                    )
+                    som_carta_jogador.play()
+                    carta_computador = None
 
-                elif resultado["vencedor_mao"] == "jogador":
-                    mensagem = "Você venceu a mão! Clique para continuar."
-                    aguardando_proxima = True
+                    mensagem = "Aguardando o computador..."
 
-                elif resultado["vencedor_mao"] == "computador":
-                    mensagem = (
-                        "Computador venceu a mão! Clique para continuar."
-                    )
-                    aguardando_proxima = True
-
-                elif resultado["vencedor_mao"] == "empate":
-                    mensagem = "Mão empatada! Clique para continuar."
-                    aguardando_proxima = True
-
-                elif resultado["resultado"] == "jogador":
-                    mensagem = (
-                        "Você venceu a rodada! Clique para continuar."
-                    )
-                    aguardando_proxima = True
-
-                elif resultado["resultado"] == "computador":
-                    mensagem = (
-                        "Computador venceu a rodada! Clique para continuar."
-                    )
-                    aguardando_proxima = True
-
+                # Caso o computador tenha começado.
                 else:
-                    mensagem = "Rodada empatada! Clique para continuar."
-                    aguardando_proxima = True
+                    if (
+                            not computador_ja_comecou
+                            or pygame.time.get_ticks() - tempo_jogada < 1000
+                    ):
+                        mensagem = "Aguarde o computador jogar."
+                        break
+
+                    resultado = partida.jogar_resposta_jogador(indice)
+
+                    if not isinstance(resultado, dict):
+                        mensagem = resultado
+                        break
+
+                    carta_jogador = resultado["carta_jogador"]
+                    som_carta_jogador.play()
+
+                    resultado = partida.concluir_rodada(
+                        carta_jogador,
+                        carta_computador,
+                    )
+
+                    computador_ja_comecou = False
+
+                    if resultado["computador_pediu_truco"]:
+                        mensagem = "O computador pediu TRUCO! Aceita ou corre?"
+
+                    elif resultado["vencedor_mao"] == "jogador":
+                        mensagem = "Você venceu a mão! Clique para continuar."
+                        aguardando_proxima = True
+
+                    elif resultado["vencedor_mao"] == "computador":
+                        mensagem = "Computador venceu a mão! Clique para continuar."
+                        aguardando_proxima = True
+
+                    elif resultado["vencedor_mao"] == "empate":
+                        mensagem = "Mão empatada! Clique para continuar."
+                        aguardando_proxima = True
+
+                    elif resultado["resultado"] == "jogador":
+                        mensagem = "Você venceu a rodada! Clique para continuar."
+                        aguardando_proxima = True
+
+                    elif resultado["resultado"] == "computador":
+                        mensagem = "Computador venceu a rodada! Clique para continuar."
+                        aguardando_proxima = True
+
+                    else:
+                        mensagem = "Rodada empatada! Clique para continuar."
+
+                        aguardando_proxima = True
 
                 break
 
@@ -373,7 +515,10 @@ def iniciar_partida(tela, relogio):
         # ------------------------------------------
 
         if encerrada:
-            imagem_final = imagem_vitoria if jogador_venceu else imagem_derrota
+            imagem_final = (
+                imagem_vitoria if jogador_venceu
+                else imagem_derrota
+            )
 
             if imagem_final:
                 tela.blit(imagem_final, (0, 0))
@@ -432,7 +577,7 @@ def iniciar_partida(tela, relogio):
             titulo.get_rect(center=(LARGURA // 2, 30))
         )
 
-        # Placar no canto superior esquerdo
+        # Placar.
         placar = fonte_pequena.render(
             f"VOCÊ: {partida.pontos_jogador} | "
             f"COMPUTADOR: {partida.pontos_computador}",
@@ -442,7 +587,7 @@ def iniciar_partida(tela, relogio):
 
         tela.blit(placar, (35, 35))
 
-        # Valor da mão no canto inferior esquerdo
+        # Valor da mão.
         texto_valor = fonte_pequena.render(
             f"VALOR DA MÃO: {partida.valor_mao}",
             True,
@@ -462,8 +607,9 @@ def iniciar_partida(tela, relogio):
         cartas_restantes_computador = len(partida.computador.cartas)
 
         largura_total = (
-                cartas_restantes_computador * 100
-                + (cartas_restantes_computador - 1) * (espacamento_versos - 100)
+            cartas_restantes_computador * 100
+            + (cartas_restantes_computador - 1)
+            * (espacamento_versos - 100)
         )
 
         inicio_versos = (LARGURA - largura_total) // 2
@@ -485,9 +631,8 @@ def iniciar_partida(tela, relogio):
         centro_jogador = LARGURA // 2 - 60
         centro_computador = LARGURA // 2 + 60
 
-        if carta_jogador is not None and carta_computador is not None:
-
-            # Sua carta com a face visível.
+        # A carta do jogador aparece imediatamente.
+        if carta_jogador is not None:
             desenhar_carta(
                 tela,
                 carta_jogador,
@@ -496,7 +641,8 @@ def iniciar_partida(tela, relogio):
                 imagens_cartas,
             )
 
-            # Carta do computador com a face visível.
+        # A carta do computador aparece após 1 segundo.
+        if carta_computador is not None:
             desenhar_carta(
                 tela,
                 carta_computador,
@@ -504,10 +650,6 @@ def iniciar_partida(tela, relogio):
                 290,
                 imagens_cartas,
             )
-
-        # ==========================================
-        # SUAS CARTAS DISPONÍVEIS
-        # ==========================================
 
         # ==========================================
         # SUAS CARTAS DISPONÍVEIS
@@ -521,15 +663,14 @@ def iniciar_partida(tela, relogio):
 
             retangulo = pygame.Rect(x, y, 100, 145)
 
-            # Verifica se o mouse está sobre a carta
             mouse_sobre_carta = retangulo.collidepoint(pos_mouse)
 
-            # Só destaca cartas que podem ser jogadas
             carta_disponivel = (
-                    not aguardando_proxima
-                    and not partida.truco_pendente_computador
-                    and not partida.mao_encerrada
-                    and not encerrada
+                not aguardando_proxima
+                and carta_jogador_pendente is None
+                and not partida.truco_pendente_computador
+                and not partida.mao_encerrada
+                and not encerrada
             )
 
             if mouse_sobre_carta and carta_disponivel:
@@ -559,34 +700,48 @@ def iniciar_partida(tela, relogio):
 
         if partida.truco_pendente_computador:
             pygame.draw.rect(
-                tela, (35, 145, 65),
-                botao_aceitar, border_radius=8
+                tela,
+                (35, 145, 65),
+                botao_aceitar,
+                border_radius=8
             )
+
             pygame.draw.rect(
-                tela, DOURADO,
-                botao_aceitar, 2, border_radius=8
+                tela,
+                DOURADO,
+                botao_aceitar,
+                2,
+                border_radius=8
             )
 
             texto = fonte_pequena.render(
                 "ACEITAR", True, BRANCO
             )
+
             tela.blit(
                 texto,
                 texto.get_rect(center=botao_aceitar.center),
             )
 
             pygame.draw.rect(
-                tela, (180, 45, 45),
-                botao_correr, border_radius=8
+                tela,
+                (180, 45, 45),
+                botao_correr,
+                border_radius=8
             )
+
             pygame.draw.rect(
-                tela, DOURADO,
-                botao_correr, 2, border_radius=8
+                tela,
+                DOURADO,
+                botao_correr,
+                2,
+                border_radius=8
             )
 
             texto = fonte_pequena.render(
                 "CORRER", True, BRANCO
             )
+
             tela.blit(
                 texto,
                 texto.get_rect(center=botao_correr.center),
@@ -597,6 +752,7 @@ def iniciar_partida(tela, relogio):
                 not partida.truco_pedido
                 and not partida.mao_encerrada
                 and not aguardando_proxima
+                and carta_jogador_pendente is None
             )
 
             cor_botao = (
@@ -606,17 +762,24 @@ def iniciar_partida(tela, relogio):
             )
 
             pygame.draw.rect(
-                tela, cor_botao,
-                botao_truco, border_radius=8
+                tela,
+                cor_botao,
+                botao_truco,
+                border_radius=8
             )
+
             pygame.draw.rect(
-                tela, DOURADO,
-                botao_truco, 2, border_radius=8
+                tela,
+                DOURADO,
+                botao_truco,
+                2,
+                border_radius=8
             )
 
             texto = fonte_pequena.render(
                 "PEDIR TRUCO", True, BRANCO
             )
+
             tela.blit(
                 texto,
                 texto.get_rect(center=botao_truco.center),
@@ -626,6 +789,7 @@ def iniciar_partida(tela, relogio):
         texto_mensagem = fonte_pequena.render(
             mensagem, True, DOURADO
         )
+
         tela.blit(
             texto_mensagem,
             texto_mensagem.get_rect(
@@ -633,7 +797,7 @@ def iniciar_partida(tela, relogio):
             ),
         )
 
-        # Atalho para voltar ao menu no canto inferior esquerdo
+        # Atalho para voltar ao menu.
         ajuda = fonte_pequena.render(
             "ESC: VOLTAR AO MENU", True, BRANCO
         )

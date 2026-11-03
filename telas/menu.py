@@ -14,7 +14,9 @@ from settings import (
     CAMINHO_LOGO,
     CAMINHO_FUNDO_MENU,
     CAMINHO_BOTAO,
-    CAMINHO_MUSICA_MENU
+    CAMINHO_MUSICA_MENU,
+    CAMINHO_SOM_ROLLOVER,
+    CAMINHO_SOM_CLICK
 )
 from telas.partida import iniciar_partida
 
@@ -164,12 +166,31 @@ def parar_musica_menu():
     pygame.mixer.music.stop()
 
 # ==================================================
+# EFEITOS SONOROS DO MENU
+# ==================================================
+
+def carregar_sons_menu():
+    som_rollover = pygame.mixer.Sound(
+        str(CAMINHO_SOM_ROLLOVER)
+    )
+
+    som_click = pygame.mixer.Sound(
+        str(CAMINHO_SOM_CLICK)
+    )
+
+    som_rollover.set_volume(0.03)
+    som_click.set_volume(0.5)
+
+    return som_rollover, som_click
+
+# ==================================================
 # MENU PRINCIPAL
 # ==================================================
 
 def iniciar_jogo():
     pygame.init()
     iniciar_musica_menu()
+    som_rollover, som_click = carregar_sons_menu()
 
     tela = pygame.display.set_mode((LARGURA, ALTURA))
     pygame.display.set_caption(TITULO)
@@ -200,9 +221,27 @@ def iniciar_jogo():
 
     tela_atual = "menu"
     executando = True
+    mouse_sobre_botao = None
 
     while executando:
         mouse_pos = pygame.mouse.get_pos()
+
+        # Verifica em qual botão o mouse está.
+        botao_atual = None
+
+        if tela_atual == "menu":
+            if botao_jogar.collidepoint(mouse_pos):
+                botao_atual = "jogar"
+            elif botao_regras.collidepoint(mouse_pos):
+                botao_atual = "regras"
+            elif botao_sair.collidepoint(mouse_pos):
+                botao_atual = "sair"
+
+        if botao_atual != mouse_sobre_botao:
+            if botao_atual is not None:
+                som_rollover.play()
+
+            mouse_sobre_botao = botao_atual
 
         # ------------------------------------------
         # EVENTOS
@@ -217,6 +256,13 @@ def iniciar_jogo():
                 and evento.button == 1
             ):
                 if tela_atual == "menu":
+
+                    if (
+                            botao_jogar.collidepoint(evento.pos)
+                            or botao_regras.collidepoint(evento.pos)
+                            or botao_sair.collidepoint(evento.pos)
+                    ):
+                        som_click.play()
 
                     if botao_jogar.collidepoint(evento.pos):
 

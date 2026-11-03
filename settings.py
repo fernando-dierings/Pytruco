@@ -33,10 +33,16 @@ CAMINHO_FUNDO_PARTIDA = PASTA_IMAGENS / "fundo_partida.png"
 CAMINHO_TELA_DERROTA = PASTA_IMAGENS / "tela_derrota.png"
 CAMINHO_TELA_VITORIA = PASTA_IMAGENS / "tela_vitoria.png"
 CAMINHO_BOTAO = PASTA_IMAGENS / "botao1.png"
-CAMINHO_MUSICA_MENU = PASTA_SONS / "musica_menu.mp3"
-CAMINHO_MUSICA_PARTIDA = PASTA_SONS / "musica_partida.mp3"
 CAMINHO_VERSO_CARTA = PASTA_CARTAS / "verso_carta.png"
 
+CAMINHO_MUSICA_MENU = PASTA_SONS / "musica_menu.mp3"
+CAMINHO_MUSICA_PARTIDA = PASTA_SONS / "musica_partida.mp3"
+
+CAMINHO_SOM_CARTA_JOGADOR = PASTA_SONS / "card_place1.mp3"
+CAMINHO_SOM_CARTA_COMPUTADOR = PASTA_SONS / "card_place2.mp3"
+
+CAMINHO_SOM_ROLLOVER = PASTA_SONS / "rollover1.mp3"
+CAMINHO_SOM_CLICK = PASTA_SONS / "click1.mp3"
 
 # ==================================================
 # CONFIGURAÇÕES DA JANELA
