@@ -16,6 +16,7 @@ from settings import (
     CAMINHO_SOM_CARTA_JOGADOR,
     CAMINHO_SOM_CARTA_COMPUTADOR,
     CAMINHO_SOM_ROLLOVER,
+    CAMINHO_SOM_TOQUE,
     CAMINHO_SOM_CLICK,
     CAMINHO_MUSICA_VITORIA,
     CAMINHO_MUSICA_DERROTA,
@@ -153,7 +154,7 @@ def desenhar_verso_carta(
 
 def iniciar_partida(tela, relogio):
     partida = Partida()
-    partida.pontos_computador = 11
+    partida.pontos_jogador = 11
 
     if CAMINHO_MUSICA_PARTIDA.exists():
         pygame.mixer.music.load(str(CAMINHO_MUSICA_PARTIDA))
@@ -167,11 +168,13 @@ def iniciar_partida(tela, relogio):
     som_carta_computador = pygame.mixer.Sound(str(CAMINHO_SOM_CARTA_COMPUTADOR))
     som_truco_notificacao = pygame.mixer.Sound(str(SOM_TRUCO_NOTIFICACAO))
     som_rollover = pygame.mixer.Sound(str(CAMINHO_SOM_ROLLOVER))
+    som_toque = pygame.mixer.Sound(str(CAMINHO_SOM_TOQUE))
     som_click = pygame.mixer.Sound(str(CAMINHO_SOM_CLICK))
     musica_vitoria = pygame.mixer.Sound(str(CAMINHO_MUSICA_VITORIA))
     musica_derrota = pygame.mixer.Sound(str(CAMINHO_MUSICA_DERROTA))
 
     som_rollover.set_volume(0.05)
+    som_toque.set_volume(0.05)
     som_click.set_volume(0.5)
     som_truco_notificacao.set_volume(0.5)
     som_carta_jogador.set_volume(0.5)
@@ -197,6 +200,7 @@ def iniciar_partida(tela, relogio):
     carta_jogador_pendente = None
     carta_computador_pendente = None
     botao_hover_anterior = None
+    carta_hover_anterior = None
     carta_jogador_pendente = None
     carta_computador_pendente = None
 
@@ -378,10 +382,14 @@ def iniciar_partida(tela, relogio):
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 pygame.mixer.music.stop()
+                musica_vitoria.stop()
+                musica_derrota.stop()
                 return "sair"
 
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
+                    musica_vitoria.stop()
+                    musica_derrota.stop()
                     pygame.mixer.music.stop()
                     return "menu"
 
@@ -400,6 +408,8 @@ def iniciar_partida(tela, relogio):
 
                 musica_vitoria_tocada = False
                 musica_derrota_tocada = False
+
+                pygame.mixer.music.play(-1)
 
                 carta_jogador = None
                 carta_computador = None
@@ -706,6 +716,7 @@ def iniciar_partida(tela, relogio):
         # ==========================================
 
         pos_mouse = pygame.mouse.get_pos()
+        carta_hover_atual = None
 
         for indice, carta in enumerate(partida.jogador.cartas):
             x = inicio_x + indice * espacamento
@@ -722,6 +733,9 @@ def iniciar_partida(tela, relogio):
                     and not partida.mao_encerrada
                     and not encerrada
             )
+
+            if mouse_sobre_carta and carta_disponivel:
+                carta_hover_atual = indice
 
             if mouse_sobre_carta and carta_disponivel:
                 largura = 110
@@ -743,6 +757,11 @@ def iniciar_partida(tela, relogio):
                 largura,
                 altura,
             )
+
+        if (carta_hover_atual is not None and carta_hover_atual != carta_hover_anterior):
+            som_toque.play()
+
+        carta_hover_anterior = carta_hover_atual
 
         # ==========================================
         # BOTÕES DO TRUCO

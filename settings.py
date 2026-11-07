@@ -40,6 +40,7 @@ CAMINHO_MUSICA_PARTIDA = PASTA_SONS / "musica_partida.mp3"
 CAMINHO_MUSICA_VITORIA = PASTA_SONS / "musica_vitoria.mp3"
 CAMINHO_MUSICA_DERROTA = PASTA_SONS / "musica_derrota.mp3"
 
+CAMINHO_SOM_TOQUE = PASTA_SONS / "touching_card.mp3"
 CAMINHO_SOM_CARTA_JOGADOR = PASTA_SONS / "card_place1.mp3"
 CAMINHO_SOM_CARTA_COMPUTADOR = PASTA_SONS / "card_place2.mp3"
 SOM_TRUCO_NOTIFICACAO = PASTA_SONS / "truco_notificacao.mp3"
