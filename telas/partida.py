@@ -1,4 +1,3 @@
-
 import pygame
 
 from settings import (
@@ -16,13 +15,17 @@ from settings import (
     CAMINHO_VERSO_CARTA,
     CAMINHO_SOM_CARTA_JOGADOR,
     CAMINHO_SOM_CARTA_COMPUTADOR,
+    CAMINHO_SOM_ROLLOVER,
+    CAMINHO_SOM_CLICK,
+    CAMINHO_MUSICA_VITORIA,
+    CAMINHO_MUSICA_DERROTA,
+    SOM_TRUCO_NOTIFICACAO,
     PASTA_CARTAS,
     AMARELO,
 )
 
 from logica.partida import Partida
 from utils.recursos import desenhar_texto_contornado
-
 
 # ==================================================
 # CAMINHOS E CONFIGURAÇÕES
@@ -89,7 +92,7 @@ def carregar_verso_carta():
 # ==================================================
 
 def desenhar_carta(
-    tela, carta, x, y, imagens, largura=100, altura=145
+        tela, carta, x, y, imagens, largura=100, altura=145
 ):
     retangulo = pygame.Rect(x, y, largura, altura)
 
@@ -123,7 +126,7 @@ def desenhar_carta(
 
 
 def desenhar_verso_carta(
-    tela, imagem, x, y, largura=100, altura=145
+        tela, imagem, x, y, largura=100, altura=145
 ):
     retangulo = pygame.Rect(x, y, largura, altura)
 
@@ -150,6 +153,7 @@ def desenhar_verso_carta(
 
 def iniciar_partida(tela, relogio):
     partida = Partida()
+    partida.pontos_computador = 11
 
     if CAMINHO_MUSICA_PARTIDA.exists():
         pygame.mixer.music.load(str(CAMINHO_MUSICA_PARTIDA))
@@ -159,17 +163,21 @@ def iniciar_partida(tela, relogio):
         print(f"Música da partida não encontrada: {CAMINHO_MUSICA_PARTIDA}")
 
     # Efeitos sonoros das cartas
-    som_carta_jogador = pygame.mixer.Sound(
-        str(CAMINHO_SOM_CARTA_JOGADOR)
-    )
+    som_carta_jogador = pygame.mixer.Sound(str(CAMINHO_SOM_CARTA_JOGADOR))
+    som_carta_computador = pygame.mixer.Sound(str(CAMINHO_SOM_CARTA_COMPUTADOR))
+    som_truco_notificacao = pygame.mixer.Sound(str(SOM_TRUCO_NOTIFICACAO))
+    som_rollover = pygame.mixer.Sound(str(CAMINHO_SOM_ROLLOVER))
+    som_click = pygame.mixer.Sound(str(CAMINHO_SOM_CLICK))
+    musica_vitoria = pygame.mixer.Sound(str(CAMINHO_MUSICA_VITORIA))
+    musica_derrota = pygame.mixer.Sound(str(CAMINHO_MUSICA_DERROTA))
 
-    som_carta_computador = pygame.mixer.Sound(
-        str(CAMINHO_SOM_CARTA_COMPUTADOR)
-    )
-
+    som_rollover.set_volume(0.05)
+    som_click.set_volume(0.5)
+    som_truco_notificacao.set_volume(0.5)
     som_carta_jogador.set_volume(0.5)
     som_carta_computador.set_volume(0.5)
-
+    musica_vitoria.set_volume(0.4)
+    musica_derrota.set_volume(0.5)
 
     imagens_cartas = carregar_imagens_cartas()
     fundo_partida = carregar_fundo()
@@ -181,12 +189,14 @@ def iniciar_partida(tela, relogio):
     fonte_pequena = pygame.font.Font(str(CAMINHO_FONTE), 10)
     fonte_vitoria = pygame.font.Font(str(CAMINHO_FONTE), 64)
 
+    musica_derrota_tocada = False
+    musica_vitoria_tocada = False
     carta_jogador = None
     carta_computador = None
     computador_ja_comecou = False
     carta_jogador_pendente = None
     carta_computador_pendente = None
-
+    botao_hover_anterior = None
     carta_jogador_pendente = None
     carta_computador_pendente = None
 
@@ -241,11 +251,11 @@ def iniciar_partida(tela, relogio):
         # ------------------------------------------
 
         if (
-            partida.quem_comeca_rodada == "computador"
-            and not computador_ja_comecou
-            and not aguardando_proxima
-            and not partida.mao_encerrada
-            and not partida.truco_pendente_computador
+                partida.quem_comeca_rodada == "computador"
+                and not computador_ja_comecou
+                and not aguardando_proxima
+                and not partida.mao_encerrada
+                and not partida.truco_pendente_computador
         ):
             resultado_inicio = partida.iniciar_rodada_computador()
 
@@ -267,8 +277,8 @@ def iniciar_partida(tela, relogio):
         # ------------------------------------------
 
         if (
-            computador_ja_comecou
-            and pygame.time.get_ticks() - tempo_jogada >= 1000
+                computador_ja_comecou
+                and pygame.time.get_ticks() - tempo_jogada >= 1000
         ):
             mensagem = "Sua vez! Escolha uma carta."
 
@@ -277,8 +287,8 @@ def iniciar_partida(tela, relogio):
         # ------------------------------------------
 
         if (
-            carta_jogador_pendente is not None
-            and pygame.time.get_ticks() - tempo_jogada >= 1000
+                carta_jogador_pendente is not None
+                and pygame.time.get_ticks() - tempo_jogada >= 1000
         ):
             resultado = partida.concluir_rodada(
                 carta_jogador_pendente
@@ -290,6 +300,7 @@ def iniciar_partida(tela, relogio):
             carta_jogador_pendente = None
 
             if resultado["computador_pediu_truco"]:
+                som_truco_notificacao.play()
                 mensagem = "O computador pediu TRUCO! Aceita ou corre?"
 
             elif resultado["vencedor_mao"] == "jogador":
@@ -316,6 +327,25 @@ def iniciar_partida(tela, relogio):
                 mensagem = "Rodada empatada! Clique para continuar."
                 aguardando_proxima = True
 
+        # Detectar mouse sobre ACEITAR e CORRER
+        botao_hover_atual = None
+
+        if partida.truco_pendente_computador:
+            pos_mouse = pygame.mouse.get_pos()
+
+            if botao_aceitar.collidepoint(pos_mouse):
+                botao_hover_atual = "aceitar"
+
+            elif botao_correr.collidepoint(pos_mouse):
+                botao_hover_atual = "correr"
+
+        if (
+                botao_hover_atual is not None
+                and botao_hover_atual != botao_hover_anterior
+        ):
+            som_rollover.play()
+
+        botao_hover_anterior = botao_hover_atual
         # ------------------------------------------
         # DETECTAR FIM DA PARTIDA AUTOMATICAMENTE
         # ------------------------------------------
@@ -323,8 +353,18 @@ def iniciar_partida(tela, relogio):
         if not encerrada and partida.partida_encerrada():
             encerrada = True
             jogador_venceu = (
-                partida.pontos_jogador >= PONTOS_PARA_VENCER
+                    partida.pontos_jogador >= PONTOS_PARA_VENCER
             )
+
+            if jogador_venceu and not musica_vitoria_tocada:
+                pygame.mixer.music.stop()
+                musica_vitoria.play()
+                musica_vitoria_tocada = True
+
+            elif not jogador_venceu and not musica_derrota_tocada:
+                pygame.mixer.music.stop()
+                musica_derrota.play()
+                musica_derrota_tocada = True
 
             if jogador_venceu:
                 mensagem = "Vitória!"
@@ -346,14 +386,20 @@ def iniciar_partida(tela, relogio):
                     return "menu"
 
             if (
-                evento.type != pygame.MOUSEBUTTONDOWN
-                or evento.button != 1
+                    evento.type != pygame.MOUSEBUTTONDOWN
+                    or evento.button != 1
             ):
                 continue
 
             # Tela final: clique inicia nova partida.
             if encerrada:
                 partida = Partida()
+
+                musica_vitoria.stop()
+                musica_derrota.stop()
+
+                musica_vitoria_tocada = False
+                musica_derrota_tocada = False
 
                 carta_jogador = None
                 carta_computador = None
@@ -372,11 +418,13 @@ def iniciar_partida(tela, relogio):
             # Responder ao truco do computador.
             if partida.truco_pendente_computador:
                 if botao_aceitar.collidepoint(evento.pos):
+                    som_click.play()
                     mensagem = partida.responder_truco(True)
                     aguardando_proxima = False
                     continue
 
                 if botao_correr.collidepoint(evento.pos):
+                    som_click.play()
                     mensagem = partida.responder_truco(False)
                     aguardando_proxima = True
                     continue
@@ -388,7 +436,7 @@ def iniciar_partida(tela, relogio):
                 if partida.partida_encerrada():
                     encerrada = True
                     jogador_venceu = (
-                        partida.pontos_jogador >= PONTOS_PARA_VENCER
+                            partida.pontos_jogador >= PONTOS_PARA_VENCER
                     )
 
                     mensagem = (
@@ -397,8 +445,8 @@ def iniciar_partida(tela, relogio):
                     )
 
                 elif (
-                    partida.mao_encerrada
-                    or not partida.jogador.tem_cartas()
+                        partida.mao_encerrada
+                        or not partida.jogador.tem_cartas()
                 ):
                     partida.nova_mao()
 
@@ -416,10 +464,11 @@ def iniciar_partida(tela, relogio):
 
             # Pedir truco.
             if (
-                botao_truco.collidepoint(evento.pos)
-                and not partida.truco_pedido
-                and not partida.mao_encerrada
+                    botao_truco.collidepoint(evento.pos)
+                    and not partida.truco_pedido
+                    and not partida.mao_encerrada
             ):
+                som_click.play()
                 resultado_truco = partida.pedir_truco()
 
                 if isinstance(resultado_truco, dict):
@@ -481,6 +530,7 @@ def iniciar_partida(tela, relogio):
                     computador_ja_comecou = False
 
                     if resultado["computador_pediu_truco"]:
+                        som_truco_notificacao.play()
                         mensagem = "O computador pediu TRUCO! Aceita ou corre?"
 
                     elif resultado["vencedor_mao"] == "jogador":
@@ -607,9 +657,9 @@ def iniciar_partida(tela, relogio):
         cartas_restantes_computador = len(partida.computador.cartas)
 
         largura_total = (
-            cartas_restantes_computador * 100
-            + (cartas_restantes_computador - 1)
-            * (espacamento_versos - 100)
+                cartas_restantes_computador * 100
+                + (cartas_restantes_computador - 1)
+                * (espacamento_versos - 100)
         )
 
         inicio_versos = (LARGURA - largura_total) // 2
@@ -666,11 +716,11 @@ def iniciar_partida(tela, relogio):
             mouse_sobre_carta = retangulo.collidepoint(pos_mouse)
 
             carta_disponivel = (
-                not aguardando_proxima
-                and carta_jogador_pendente is None
-                and not partida.truco_pendente_computador
-                and not partida.mao_encerrada
-                and not encerrada
+                    not aguardando_proxima
+                    and carta_jogador_pendente is None
+                    and not partida.truco_pendente_computador
+                    and not partida.mao_encerrada
+                    and not encerrada
             )
 
             if mouse_sobre_carta and carta_disponivel:
@@ -714,8 +764,10 @@ def iniciar_partida(tela, relogio):
                 border_radius=8
             )
 
+            cor_texto = AMARELO if botao_hover_atual == "aceitar" else BRANCO
+
             texto = fonte_pequena.render(
-                "ACEITAR", True, BRANCO
+                "ACEITAR", True, cor_texto
             )
 
             tela.blit(
@@ -738,8 +790,10 @@ def iniciar_partida(tela, relogio):
                 border_radius=8
             )
 
+            cor_texto = AMARELO if botao_hover_atual == "correr" else BRANCO
+
             texto = fonte_pequena.render(
-                "CORRER", True, BRANCO
+                "CORRER", True, cor_texto
             )
 
             tela.blit(
@@ -749,10 +803,10 @@ def iniciar_partida(tela, relogio):
 
         else:
             truco_disponivel = (
-                not partida.truco_pedido
-                and not partida.mao_encerrada
-                and not aguardando_proxima
-                and carta_jogador_pendente is None
+                    not partida.truco_pedido
+                    and not partida.mao_encerrada
+                    and not aguardando_proxima
+                    and carta_jogador_pendente is None
             )
 
             cor_botao = (
