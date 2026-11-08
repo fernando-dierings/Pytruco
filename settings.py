@@ -28,7 +28,7 @@ CAMINHO_FONTE = (
 )
 
 CAMINHO_LOGO = PASTA_IMAGENS / "logo_pytruco.png"
-CAMINHO_FUNDO_MENU = PASTA_IMAGENS / "fundo_menu1.png"
+CAMINHO_FUNDO_MENU = PASTA_IMAGENS / "fundo_menu3.png"
 CAMINHO_FUNDO_PARTIDA = PASTA_IMAGENS / "fundo_partida.png"
 CAMINHO_TELA_DERROTA = PASTA_IMAGENS / "tela_derrota.png"
 CAMINHO_TELA_VITORIA = PASTA_IMAGENS / "tela_vitoria.png"
@@ -47,6 +47,14 @@ SOM_TRUCO_NOTIFICACAO = PASTA_SONS / "truco_notificacao.mp3"
 
 CAMINHO_SOM_ROLLOVER = PASTA_SONS / "rollover1.mp3"
 CAMINHO_SOM_CLICK = PASTA_SONS / "click1.mp3"
+
+CAMINHO_VOZ_DERROTA = "assets/sons/voz_derrota.mp3"
+CAMINHO_VOZ_DERROTA_1 = "assets/sons/voz_derrota1.mp3"
+CAMINHO_VOZ_DERROTA_2 = "assets/sons/voz_derrota2.mp3"
+
+CAMINHO_VOZ_VITORIA = "assets/sons/voz_vitoria.mp3"
+CAMINHO_VOZ_VITORIA_1 = "assets/sons/voz_vitoria1.mp3"
+CAMINHO_VOZ_VITORIA_2 = "assets/sons/voz_vitoria2.mp3"
 
 # ==================================================
 # CONFIGURAÇÕES DA JANELA

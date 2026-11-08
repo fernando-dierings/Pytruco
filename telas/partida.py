@@ -1,5 +1,7 @@
 import pygame
 
+import random
+
 from settings import (
     LARGURA,
     ALTURA,
@@ -21,6 +23,12 @@ from settings import (
     CAMINHO_MUSICA_VITORIA,
     CAMINHO_MUSICA_DERROTA,
     SOM_TRUCO_NOTIFICACAO,
+    CAMINHO_VOZ_DERROTA,
+    CAMINHO_VOZ_DERROTA_1,
+    CAMINHO_VOZ_DERROTA_2,
+    CAMINHO_VOZ_VITORIA,
+    CAMINHO_VOZ_VITORIA_1,
+    CAMINHO_VOZ_VITORIA_2,
     PASTA_CARTAS,
     AMARELO,
 )
@@ -173,14 +181,26 @@ def iniciar_partida(tela, relogio):
     musica_vitoria = pygame.mixer.Sound(str(CAMINHO_MUSICA_VITORIA))
     musica_derrota = pygame.mixer.Sound(str(CAMINHO_MUSICA_DERROTA))
 
+    falas_derrota = [
+        pygame.mixer.Sound(str(CAMINHO_VOZ_DERROTA)),
+        pygame.mixer.Sound(str(CAMINHO_VOZ_DERROTA_1)),
+        pygame.mixer.Sound(str(CAMINHO_VOZ_DERROTA_2))
+    ]
+
+    falas_vitoria = [
+        pygame.mixer.Sound(str(CAMINHO_VOZ_VITORIA)),
+        pygame.mixer.Sound(str(CAMINHO_VOZ_VITORIA_1)),
+        pygame.mixer.Sound(str(CAMINHO_VOZ_VITORIA_2))
+    ]
+
     som_rollover.set_volume(0.05)
     som_toque.set_volume(0.05)
     som_click.set_volume(0.5)
     som_truco_notificacao.set_volume(0.5)
     som_carta_jogador.set_volume(0.5)
     som_carta_computador.set_volume(0.5)
-    musica_vitoria.set_volume(0.4)
-    musica_derrota.set_volume(0.5)
+    musica_vitoria.set_volume(0.3)
+    musica_derrota.set_volume(0.3)
 
     imagens_cartas = carregar_imagens_cartas()
     fundo_partida = carregar_fundo()
@@ -363,11 +383,14 @@ def iniciar_partida(tela, relogio):
             if jogador_venceu and not musica_vitoria_tocada:
                 pygame.mixer.music.stop()
                 musica_vitoria.play()
+                random.choice(falas_vitoria).play()
                 musica_vitoria_tocada = True
+
 
             elif not jogador_venceu and not musica_derrota_tocada:
                 pygame.mixer.music.stop()
                 musica_derrota.play()
+                random.choice(falas_derrota).play()
                 musica_derrota_tocada = True
 
             if jogador_venceu:

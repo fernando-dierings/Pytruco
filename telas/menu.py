@@ -127,7 +127,7 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
     instrucoes = [
         "Receba tres cartas.",
         "Clique em uma carta para jogar.",
-        "O computador sera seu adversario.",
+        "O computador sera seu adversário.",
         "Cada rodada pode valer um ponto.",
         "O primeiro a chegar a 12 pontos vence.",
         "",
