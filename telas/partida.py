@@ -259,6 +259,10 @@ def iniciar_partida(tela, relogio):
     animacao_carta_jogador_inicio = None
     animacao_carta_jogador_tempo = 0
 
+    # Animação da carta do computador
+    animacao_carta_computador_tempo = 0
+    animacao_carta_computador_ativa = False
+
     aguardando_proxima = False
     encerrada = False
     jogador_venceu = False
@@ -311,6 +315,9 @@ def iniciar_partida(tela, relogio):
             if isinstance(resultado_inicio, dict):
                 carta_computador = resultado_inicio["carta_computador"]
 
+                animacao_carta_computador_tempo = pygame.time.get_ticks()
+                animacao_carta_computador_ativa = True
+
                 som_carta_computador.play()
 
                 computador_ja_comecou = True
@@ -327,7 +334,7 @@ def iniciar_partida(tela, relogio):
 
         if (
                 computador_ja_comecou
-                and pygame.time.get_ticks() - tempo_jogada >= 1000
+                and pygame.time.get_ticks() - tempo_jogada >= 700
         ):
             mensagem = "Sua vez! Escolha uma carta."
 
@@ -344,6 +351,8 @@ def iniciar_partida(tela, relogio):
             )
 
             carta_computador = resultado["carta_computador"]
+            animacao_carta_computador_tempo = pygame.time.get_ticks()
+            animacao_carta_computador_ativa = True
             som_carta_computador.play()
 
             carta_jogador_pendente = None
@@ -806,15 +815,51 @@ def iniciar_partida(tela, relogio):
                     imagens_cartas,
                 )
 
-        # A carta do computador aparece após 1 segundo.
+        # Animação da carta do computador
         if carta_computador is not None:
-            desenhar_carta(
-                tela,
-                carta_computador,
-                centro_computador - 50,
-                290,
-                imagens_cartas,
-            )
+
+            destino_x = centro_computador - 50
+            destino_y = 290
+
+            if animacao_carta_computador_ativa:
+
+                tempo_decorrido = (
+                        pygame.time.get_ticks()
+                        - animacao_carta_computador_tempo
+                )
+
+                progresso = min(
+                    1.0,
+                    tempo_decorrido / DURACAO_ANIMACAO_CARTA
+                )
+
+                progresso_suave = 1 - (1 - progresso) ** 3
+
+                origem_y = 120
+
+                y_atual = int(
+                    origem_y + (destino_y - origem_y) * progresso_suave
+                )
+
+                desenhar_carta(
+                    tela,
+                    carta_computador,
+                    destino_x,
+                    y_atual,
+                    imagens_cartas,
+                )
+
+                if progresso >= 1.0:
+                    animacao_carta_computador_ativa = False
+
+            else:
+                desenhar_carta(
+                    tela,
+                    carta_computador,
+                    destino_x,
+                    destino_y,
+                    imagens_cartas,
+                )
 
         # ==========================================
         # SUAS CARTAS DISPONÍVEIS
