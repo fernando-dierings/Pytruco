@@ -2,6 +2,8 @@ import pygame
 
 import random
 
+import math
+
 from settings import (
     LARGURA,
     ALTURA,
@@ -262,6 +264,8 @@ def iniciar_partida(tela, relogio):
     # Animação da carta do computador
     animacao_carta_computador_tempo = 0
     animacao_carta_computador_ativa = False
+    DURACAO_GIRO_CARTA = 400
+    animacao_giro_computador_inicio = None
 
     aguardando_proxima = False
     encerrada = False
@@ -317,6 +321,7 @@ def iniciar_partida(tela, relogio):
 
                 animacao_carta_computador_tempo = pygame.time.get_ticks()
                 animacao_carta_computador_ativa = True
+                animacao_giro_computador_inicio = None
 
                 som_carta_computador.play()
 
@@ -334,7 +339,7 @@ def iniciar_partida(tela, relogio):
 
         if (
                 computador_ja_comecou
-                and pygame.time.get_ticks() - tempo_jogada >= 700
+                and pygame.time.get_ticks() - tempo_jogada >= 300
         ):
             mensagem = "Sua vez! Escolha uma carta."
 
@@ -351,6 +356,7 @@ def iniciar_partida(tela, relogio):
             )
 
             carta_computador = resultado["carta_computador"]
+            animacao_giro_computador_inicio = None
             animacao_carta_computador_tempo = pygame.time.get_ticks()
             animacao_carta_computador_ativa = True
             som_carta_computador.play()
@@ -815,12 +821,16 @@ def iniciar_partida(tela, relogio):
                     imagens_cartas,
                 )
 
-        # Animação da carta do computador
+        # ==========================================
+        # ANIMAÇÃO DA CARTA DO COMPUTADOR
+        # ==========================================
+
         if carta_computador is not None:
 
             destino_x = centro_computador - 50
             destino_y = 290
 
+            # PRIMEIRA ETAPA: CARTA DESCENDO FECHADA
             if animacao_carta_computador_ativa:
 
                 tempo_decorrido = (
@@ -841,17 +851,65 @@ def iniciar_partida(tela, relogio):
                     origem_y + (destino_y - origem_y) * progresso_suave
                 )
 
-                desenhar_carta(
+                desenhar_verso_carta(
                     tela,
-                    carta_computador,
+                    imagem_verso_carta,
                     destino_x,
                     y_atual,
-                    imagens_cartas,
                 )
 
                 if progresso >= 1.0:
                     animacao_carta_computador_ativa = False
+                    animacao_giro_computador_inicio = pygame.time.get_ticks()
 
+            # SEGUNDA ETAPA: VIRAR E REVELAR A CARTA
+            elif animacao_giro_computador_inicio is not None:
+
+                tempo_decorrido = (
+                        pygame.time.get_ticks()
+                        - animacao_giro_computador_inicio
+                )
+
+                progresso = min(
+                    1.0,
+                    tempo_decorrido / DURACAO_GIRO_CARTA
+                )
+
+                # A largura diminui até o meio e depois aumenta.
+                fator_largura = abs(math.cos(math.pi * progresso))
+
+                largura_atual = max(
+                    1,
+                    int(100 * fator_largura)
+                )
+
+                x_atual = destino_x + (100 - largura_atual) // 2
+
+                # No meio do giro, revela a face da carta.
+                if progresso < 0.5:
+                    desenhar_verso_carta(
+                        tela,
+                        imagem_verso_carta,
+                        x_atual,
+                        destino_y,
+                        largura_atual,
+                        145,
+                    )
+                else:
+                    desenhar_carta(
+                        tela,
+                        carta_computador,
+                        x_atual,
+                        destino_y,
+                        imagens_cartas,
+                        largura_atual,
+                        145,
+                    )
+
+                if progresso >= 1.0:
+                    animacao_giro_computador_inicio = None
+
+            # TERCEIRA ETAPA: CARTA REVELADA
             else:
                 desenhar_carta(
                     tela,
