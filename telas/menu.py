@@ -103,8 +103,8 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
     else:
         tela.fill(VERDE_MESA)
 
-    painel = pygame.Surface((700, 470), pygame.SRCALPHA)
-    painel.fill((15, 30, 18, 225))
+    painel = pygame.Surface((550, 470), pygame.SRCALPHA)
+    painel.fill((15, 30, 18, 150))
 
     tela.blit(
         painel,
@@ -125,10 +125,10 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
     )
 
     instrucoes = [
-        "Receba tres cartas.",
+        "Receba três cartas.",
         "Clique em uma carta para jogar.",
-        "O computador sera seu adversário.",
-        "Cada rodada pode valer um ponto.",
+        "O computador será seu adversário.",
+        "Cada rodada pode valer um ponto,",
         "O primeiro a chegar a 12 pontos vence.",
         "",
         "Pressione ESC para voltar ao menu.",
@@ -145,6 +145,65 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
             linha,
             linha.get_rect(
                 center=(LARGURA // 2, 260 + indice * 38)
+            ),
+        )
+
+# ==================================================
+# TELA DE CRÉDITOS
+# ==================================================
+
+def mostrar_creditos(tela, fonte_titulo, fonte_texto, fundo):
+    if fundo:
+        tela.blit(fundo, (0, 0))
+    else:
+        tela.fill(VERDE_MESA)
+
+    painel = pygame.Surface((550, 470), pygame.SRCALPHA)
+    painel.fill((15, 30, 18, 150))
+
+    tela.blit(
+        painel,
+        painel.get_rect(
+            center=(LARGURA // 2, ALTURA // 2)
+        ),
+    )
+
+    titulo = fonte_titulo.render(
+        "créditos",
+        True,
+        DOURADO,
+    )
+
+    tela.blit(
+        titulo,
+        titulo.get_rect(center=(LARGURA // 2, 180)),
+    )
+
+    creditos = [
+        "DESENVOLVIMENTO",
+        "Fernando Dierings",
+        "",
+        "TECNOLOGIAS",
+        "Python e Pygame",
+        "",
+        "OBRIGADO POR JOGAR!",
+        "",
+        "Pressione ESC para voltar ao menu.",
+    ]
+
+    for indice, texto in enumerate(creditos):
+        cor = DOURADO if texto.isupper() and texto else BRANCO
+
+        linha = fonte_texto.render(
+            texto,
+            True,
+            cor,
+        )
+
+        tela.blit(
+            linha,
+            linha.get_rect(
+                center=(LARGURA // 2, 245 + indice * 34)
             ),
         )
 
@@ -208,15 +267,19 @@ def iniciar_jogo():
 
     # Posições dos botões.
     botao_jogar = pygame.Rect(
-        LARGURA // 2 - 150, 330, 300, 55
+        LARGURA // 2 - 150, 300, 300, 55
     )
 
     botao_regras = pygame.Rect(
-        LARGURA // 2 - 150, 405, 300, 55
+        LARGURA // 2 - 150, 370, 300, 55
+    )
+
+    botao_creditos = pygame.Rect(
+        LARGURA // 2 - 150, 440, 300, 55
     )
 
     botao_sair = pygame.Rect(
-        LARGURA // 2 - 150, 480, 300, 55
+        LARGURA // 2 - 150, 510, 300, 55
     )
 
     tela_atual = "menu"
@@ -234,6 +297,8 @@ def iniciar_jogo():
                 botao_atual = "jogar"
             elif botao_regras.collidepoint(mouse_pos):
                 botao_atual = "regras"
+            elif botao_creditos.collidepoint(mouse_pos):
+                botao_atual = "creditos"
             elif botao_sair.collidepoint(mouse_pos):
                 botao_atual = "sair"
 
@@ -261,6 +326,7 @@ def iniciar_jogo():
                             botao_jogar.collidepoint(evento.pos)
                             or botao_regras.collidepoint(evento.pos)
                             or botao_sair.collidepoint(evento.pos)
+                            or botao_creditos.collidepoint(evento.pos)
                     ):
                         som_click.play()
 
@@ -277,14 +343,17 @@ def iniciar_jogo():
 
                     elif botao_regras.collidepoint(evento.pos):
                         tela_atual = "regras"
-
+                    elif botao_creditos.collidepoint(evento.pos):
+                        tela_atual = "creditos"
                     elif botao_sair.collidepoint(evento.pos):
                         executando = False
 
+
             elif evento.type == pygame.KEYDOWN:
+
                 if (
-                    evento.key == pygame.K_ESCAPE
-                    and tela_atual == "regras"
+                        evento.key == pygame.K_ESCAPE
+                        and tela_atual in ("regras", "creditos")
                 ):
                     tela_atual = "menu"
 
@@ -325,17 +394,22 @@ def iniciar_jogo():
             # Botões.
             # Botões
             desenhar_botao(
-                tela, "JOGAR", botao_jogar,
+                tela, "PLAY", botao_jogar,
                 fonte_botao, mouse_pos, imagem_botao
             )
 
             desenhar_botao(
-                tela, "COMO JOGAR", botao_regras,
+                tela, "HOW TO PLAY", botao_regras,
                 fonte_botao, mouse_pos, imagem_botao
             )
 
             desenhar_botao(
-                tela, "SAIR", botao_sair,
+                tela, "CREDITS", botao_creditos,
+                fonte_botao, mouse_pos, imagem_botao
+            )
+
+            desenhar_botao(
+                tela, "EXIT", botao_sair,
                 fonte_botao, mouse_pos, imagem_botao
             )
 
@@ -345,6 +419,14 @@ def iniciar_jogo():
 
         elif tela_atual == "regras":
             mostrar_regras(
+                tela,
+                fonte_titulo,
+                fonte_texto,
+                fundo_menu,
+            )
+
+        elif tela_atual == "creditos":
+            mostrar_creditos(
                 tela,
                 fonte_titulo,
                 fonte_texto,

@@ -161,7 +161,7 @@ def desenhar_verso_carta(
 
 def iniciar_partida(tela, relogio):
     partida = Partida()
-    partida.pontos_jogador = 12
+    partida.pontos_jogador = 0
 
     if CAMINHO_MUSICA_PARTIDA.exists():
         pygame.mixer.music.load(str(CAMINHO_MUSICA_PARTIDA))
