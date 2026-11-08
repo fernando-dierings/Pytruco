@@ -11,6 +11,7 @@ from settings import (
     PONTOS_PARA_VENCER,
     CAMINHO_FONTE,
     CAMINHO_FUNDO_PARTIDA,
+    CAMINHO_LOGO_PLACA,
     CAMINHO_MUSICA_PARTIDA,
     CAMINHO_TELA_DERROTA,
     CAMINHO_TELA_VITORIA,
@@ -208,6 +209,22 @@ def iniciar_partida(tela, relogio):
     imagens_cartas = carregar_imagens_cartas()
     fundo_partida = carregar_fundo()
     imagem_verso_carta = carregar_verso_carta()
+
+    # Logo da partida
+    logo_partida = pygame.image.load(
+        str(CAMINHO_LOGO_PLACA)
+    ).convert_alpha()
+
+    largura_logo = 240
+    altura_logo = int(
+        logo_partida.get_height() * largura_logo / logo_partida.get_width()
+    )
+
+    logo_partida = pygame.transform.smoothscale(
+        logo_partida,
+        (largura_logo, altura_logo)
+    )
+
     imagem_vitoria = carregar_tela_vitoria()
     imagem_derrota = carregar_imagem(CAMINHO_TELA_DERROTA)
 
@@ -659,11 +676,12 @@ def iniciar_partida(tela, relogio):
         else:
             tela.fill((20, 90, 45))
 
-        # Título.
-        titulo = fonte_media.render("PYTRUCO", True, AMARELO)
+        # Logo do PYTRUCO.
         tela.blit(
-            titulo,
-            titulo.get_rect(center=(LARGURA // 2, 30))
+            logo_partida,
+            logo_partida.get_rect(
+                center=(LARGURA // 2, 40)
+            )
         )
 
         # Placar.

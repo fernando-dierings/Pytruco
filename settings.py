@@ -28,6 +28,7 @@ CAMINHO_FONTE = (
 )
 
 CAMINHO_LOGO = PASTA_IMAGENS / "logo_pytruco.png"
+CAMINHO_LOGO_PLACA= PASTA_IMAGENS / "logo_pytruco_placa2.png"
 CAMINHO_FUNDO_MENU = PASTA_IMAGENS / "fundo_menu_arrumando.png"
 CAMINHO_FUNDO_PARTIDA = PASTA_IMAGENS / "fundo_partida.png"
 CAMINHO_TELA_DERROTA = PASTA_IMAGENS / "tela_derrota.png"
