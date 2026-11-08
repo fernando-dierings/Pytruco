@@ -254,6 +254,11 @@ def iniciar_partida(tela, relogio):
 
     mensagem = "Clique em uma carta para jogar."
 
+    # Animação da carta do jogador
+    DURACAO_ANIMACAO_CARTA = 500
+    animacao_carta_jogador_inicio = None
+    animacao_carta_jogador_tempo = 0
+
     aguardando_proxima = False
     encerrada = False
     jogador_venceu = False
@@ -555,6 +560,13 @@ def iniciar_partida(tela, relogio):
                     carta_jogador_pendente = carta_jogador
                     tempo_jogada = pygame.time.get_ticks()
 
+                    animacao_carta_jogador_inicio = (
+                        inicio_x + indice * espacamento,
+                        465
+                    )
+
+                    animacao_carta_jogador_tempo = pygame.time.get_ticks()
+
                     som_carta_jogador.play()
                     carta_computador = None
 
@@ -576,6 +588,11 @@ def iniciar_partida(tela, relogio):
                         break
 
                     carta_jogador = resultado["carta_jogador"]
+                    animacao_carta_jogador_inicio = (
+                        inicio_x + indice * espacamento,
+                        465
+                    )
+                    animacao_carta_jogador_tempo = pygame.time.get_ticks()
                     som_carta_jogador.play()
 
                     resultado = partida.concluir_rodada(
@@ -738,15 +755,56 @@ def iniciar_partida(tela, relogio):
         centro_jogador = LARGURA // 2 - 60
         centro_computador = LARGURA // 2 + 60
 
-        # A carta do jogador aparece imediatamente.
+        # Animação da carta do jogador
         if carta_jogador is not None:
-            desenhar_carta(
-                tela,
-                carta_jogador,
-                centro_jogador - 50,
-                320,
-                imagens_cartas,
-            )
+
+            destino_x = centro_jogador - 50
+            destino_y = 320
+
+            if animacao_carta_jogador_inicio is not None:
+
+                tempo_decorrido = (
+                        pygame.time.get_ticks()
+                        - animacao_carta_jogador_tempo
+                )
+
+                progresso = min(
+                    1.0,
+                    tempo_decorrido / DURACAO_ANIMACAO_CARTA
+                )
+
+                # Movimento suavizado
+                progresso_suave = 1 - (1 - progresso) ** 3
+
+                origem_x, origem_y = animacao_carta_jogador_inicio
+
+                x_atual = int(
+                    origem_x + (destino_x - origem_x) * progresso_suave
+                )
+
+                y_atual = int(
+                    origem_y + (destino_y - origem_y) * progresso_suave
+                )
+
+                desenhar_carta(
+                    tela,
+                    carta_jogador,
+                    x_atual,
+                    y_atual,
+                    imagens_cartas,
+                )
+
+                if progresso >= 1.0:
+                    animacao_carta_jogador_inicio = None
+
+            else:
+                desenhar_carta(
+                    tela,
+                    carta_jogador,
+                    destino_x,
+                    destino_y,
+                    imagens_cartas,
+                )
 
         # A carta do computador aparece após 1 segundo.
         if carta_computador is not None:

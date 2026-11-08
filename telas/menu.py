@@ -96,7 +96,7 @@ def mostrar_transicao(tela, relogio, quadros, fonte_titulo):
     # Guarda uma imagem do menu atual.
     imagem_menu = tela.copy()
 
-    duracao_fade = 1200
+    duracao_fade = 2000
     duracao_gif = 11000
 
     def desenhar_legenda(tela, fonte, tempo):
