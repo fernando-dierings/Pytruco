@@ -95,7 +95,6 @@ def carregar_verso_carta():
 
     return pygame.image.load(str(CAMINHO_VERSO_CARTA)).convert_alpha()
 
-
 # ==================================================
 # DESENHO DAS CARTAS
 # ==================================================
@@ -162,7 +161,7 @@ def desenhar_verso_carta(
 
 def iniciar_partida(tela, relogio):
     partida = Partida()
-    partida.pontos_jogador = 11
+    partida.pontos_jogador = 12
 
     if CAMINHO_MUSICA_PARTIDA.exists():
         pygame.mixer.music.load(str(CAMINHO_MUSICA_PARTIDA))
@@ -192,6 +191,10 @@ def iniciar_partida(tela, relogio):
         pygame.mixer.Sound(str(CAMINHO_VOZ_VITORIA_1)),
         pygame.mixer.Sound(str(CAMINHO_VOZ_VITORIA_2))
     ]
+
+    def parar_falas():
+        for fala in falas_vitoria + falas_derrota:
+            fala.stop()
 
     som_rollover.set_volume(0.05)
     som_toque.set_volume(0.05)
@@ -411,6 +414,7 @@ def iniciar_partida(tela, relogio):
 
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
+                    parar_falas()
                     musica_vitoria.stop()
                     musica_derrota.stop()
                     pygame.mixer.music.stop()
@@ -424,6 +428,8 @@ def iniciar_partida(tela, relogio):
 
             # Tela final: clique inicia nova partida.
             if encerrada:
+                parar_falas()
+
                 partida = Partida()
 
                 musica_vitoria.stop()
