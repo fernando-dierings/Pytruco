@@ -157,6 +157,41 @@ def desenhar_verso_carta(
 
     return retangulo
 
+def desenhar_texto_vencedor(
+        tela, texto, fonte, centro_x, centro_y, tempo
+):
+    progresso = min(1.0, tempo / 1200)
+
+    # Movimento suave para cima
+    deslocamento_y = int(15 * progresso)
+
+    # Desaparecimento gradual
+    opacidade = int(255 * (1 - progresso))
+
+    superficie_texto = fonte.render(
+        texto, False, DOURADO
+    )
+
+    superficie_sombra = fonte.render(
+        texto, False, PRETO
+    )
+
+    superficie_texto.set_alpha(opacidade)
+    superficie_sombra.set_alpha(opacidade)
+
+    retangulo = superficie_texto.get_rect(
+        center=(centro_x, centro_y - deslocamento_y)
+    )
+
+    retangulo_sombra = superficie_sombra.get_rect(
+        center=(
+            centro_x + 2,
+            centro_y - deslocamento_y + 2
+        )
+    )
+
+    tela.blit(superficie_sombra, retangulo_sombra)
+    tela.blit(superficie_texto, retangulo)
 
 # ==================================================
 # TELA DA PARTIDA
@@ -233,6 +268,7 @@ def iniciar_partida(tela, relogio):
     fonte_media = pygame.font.Font(str(CAMINHO_FONTE), 35)
     fonte_pequena = pygame.font.Font(str(CAMINHO_FONTE), 10)
     fonte_vitoria = pygame.font.Font(str(CAMINHO_FONTE), 64)
+    fonte_texto_vencedor = pygame.font.Font(str(CAMINHO_FONTE), 7)
 
     musica_derrota_tocada = False
     musica_vitoria_tocada = False
@@ -266,6 +302,11 @@ def iniciar_partida(tela, relogio):
     animacao_carta_computador_ativa = False
     DURACAO_GIRO_CARTA = 400
     animacao_giro_computador_inicio = None
+
+    # Destaque da carta vencedora
+    DURACAO_DESTAQUE_CARTA = 1200
+    carta_destaque = None
+    tempo_inicio_destaque = None
 
     aguardando_proxima = False
     encerrada = False
@@ -356,6 +397,8 @@ def iniciar_partida(tela, relogio):
             )
 
             carta_computador = resultado["carta_computador"]
+            carta_destaque = resultado["resultado"]
+            tempo_inicio_destaque = None
             animacao_giro_computador_inicio = None
             animacao_carta_computador_tempo = pygame.time.get_ticks()
             animacao_carta_computador_ativa = True
@@ -614,6 +657,8 @@ def iniciar_partida(tela, relogio):
                         carta_jogador,
                         carta_computador,
                     )
+                    carta_destaque = resultado["resultado"]
+                    tempo_inicio_destaque = None
 
                     computador_ja_comecou = False
 
@@ -770,6 +815,29 @@ def iniciar_partida(tela, relogio):
         centro_jogador = LARGURA // 2 - 60
         centro_computador = LARGURA // 2 + 60
 
+        # ==========================================
+        # CONTROLE DO DESTAQUE DA CARTA VENCEDORA
+        # ==========================================
+
+        if (
+                carta_destaque is not None
+                and tempo_inicio_destaque is None
+                and animacao_carta_jogador_inicio is None
+                and not animacao_carta_computador_ativa
+                and animacao_giro_computador_inicio is None
+        ):
+            tempo_inicio_destaque = pygame.time.get_ticks()
+
+        if carta_destaque is not None and tempo_inicio_destaque is not None:
+
+            tempo_destaque = (
+                    pygame.time.get_ticks() - tempo_inicio_destaque
+            )
+
+            if tempo_destaque >= DURACAO_DESTAQUE_CARTA:
+                carta_destaque = None
+                tempo_inicio_destaque = None
+
         # Animação da carta do jogador
         if carta_jogador is not None:
 
@@ -920,6 +988,49 @@ def iniciar_partida(tela, relogio):
                 )
 
         # ==========================================
+        # TEXTO FLUTUANTE DA CARTA VENCEDORA
+        # ==========================================
+
+        if carta_destaque is not None and tempo_inicio_destaque is not None:
+
+            tempo_destaque = (
+                    pygame.time.get_ticks() - tempo_inicio_destaque
+            )
+
+            if carta_destaque == "jogador":
+
+                desenhar_texto_vencedor(
+                    tela,
+                    "Você venceu!",
+                    fonte_texto_vencedor,
+                    centro_jogador,
+                    305,
+                    tempo_destaque
+                )
+
+            elif carta_destaque == "computador":
+
+                desenhar_texto_vencedor(
+                    tela,
+                    "Computador Venceu!",
+                    fonte_texto_vencedor,
+                    centro_computador + 15,
+                    448,
+                    tempo_destaque
+                )
+
+            elif carta_destaque == "empate":
+
+                desenhar_texto_vencedor(
+                    tela,
+                    "Empate!",
+                    fonte_texto_vencedor,
+                    LARGURA // 2,
+                    270,
+                    tempo_destaque
+                )
+
+        # ==========================================
         # SUAS CARTAS DISPONÍVEIS
         # ==========================================
 
@@ -928,7 +1039,7 @@ def iniciar_partida(tela, relogio):
 
         for indice, carta in enumerate(partida.jogador.cartas):
             x = inicio_x + indice * espacamento
-            y = 465
+            y = 480
 
             retangulo = pygame.Rect(x, y, 100, 145)
 
