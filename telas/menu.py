@@ -12,6 +12,7 @@ from settings import (
     CAMINHO_FONTE,
     CAMINHO_LOGO,
     CAMINHO_FUNDO_MENU,
+    CAMINHO_FUNDO_PARTIDA2,
     CAMINHO_BOTAO,
     CAMINHO_MUSICA_MENU,
     CAMINHO_SOM_ROLLOVER,
@@ -46,6 +47,23 @@ def carregar_fundo_menu():
 
     imagem = pygame.image.load(
         str(CAMINHO_FUNDO_MENU)
+    ).convert()
+
+    return pygame.transform.scale(
+        imagem,
+        (LARGURA, ALTURA)
+    )
+
+def carregar_fundo_identificacao():
+    if not CAMINHO_FUNDO_PARTIDA2.exists():
+        print(
+            f"Fundo de identificação não encontrado: "
+            f"{CAMINHO_FUNDO_PARTIDA2}"
+        )
+        return None
+
+    imagem = pygame.image.load(
+        str(CAMINHO_FUNDO_PARTIDA2)
     ).convert()
 
     return pygame.transform.scale(
@@ -255,6 +273,192 @@ def mostrar_creditos(tela, fonte_titulo, fonte_texto, fundo):
 
 
 # ==================================================
+# TELA DE IDENTIFICAÇÃO DO JOGADOR
+# ==================================================
+
+def mostrar_tela_nome(
+    tela,
+    relogio,
+    fundo,
+    fonte_titulo,
+    fonte_texto,
+    fonte_botao,
+    imagem_botao,
+    som_click,
+):
+    nome = ""
+
+
+    campo_nome = pygame.Rect(
+        LARGURA // 2 - 250,
+        330,
+        500,
+        60,
+    )
+
+    botao_confirmar = pygame.Rect(
+        LARGURA // 2 - 210,
+        440,
+        200,
+        55,
+    )
+
+    botao_voltar = pygame.Rect(
+        LARGURA // 2 + 10,
+        440,
+        200,
+        55,
+    )
+
+    pygame.key.start_text_input()
+
+    executando = True
+
+    while executando:
+        mouse_pos = pygame.mouse.get_pos()
+
+        for evento in pygame.event.get():
+
+            if evento.type == pygame.QUIT:
+                pygame.key.stop_text_input()
+                return None, True
+
+            elif evento.type == pygame.TEXTINPUT:
+                nome += evento.text
+                nome = nome[:16]
+
+            elif evento.type == pygame.KEYDOWN:
+
+                if evento.key == pygame.K_BACKSPACE:
+                    nome = nome[:-1]
+
+                elif evento.key == pygame.K_RETURN and nome.strip():
+                    pygame.key.stop_text_input()
+                    return nome.strip(), False
+
+                elif evento.key == pygame.K_ESCAPE:
+                    pygame.key.stop_text_input()
+                    return None, False
+
+            elif (
+                evento.type == pygame.MOUSEBUTTONDOWN
+                and evento.button == 1
+            ):
+
+                if botao_confirmar.collidepoint(evento.pos):
+                    if nome.strip():
+                        som_click.play()
+                        pygame.key.stop_text_input()
+                        return nome.strip(), False
+
+                elif botao_voltar.collidepoint(evento.pos):
+                    som_click.play()
+                    pygame.key.stop_text_input()
+                    return None, False
+
+        # Fundo.
+        if fundo:
+            tela.blit(fundo, (0, 0))
+        else:
+            tela.fill(VERDE_MESA)
+
+
+        # Título.
+        titulo = fonte_titulo.render(
+            "BUENAS, VIVENTE!",
+            True,
+            DOURADO,
+        )
+
+        tela.blit(
+            titulo,
+            titulo.get_rect(
+                center=(LARGURA // 2, 220)
+            ),
+        )
+
+        # Instrução.
+        instrucao = fonte_texto.render(
+            "COMO DEVEMOS TE CHAMAR?",
+            True,
+            BRANCO,
+        )
+
+        tela.blit(
+            instrucao,
+            instrucao.get_rect(
+                center=(LARGURA // 2, 285)
+            ),
+        )
+
+        # Campo de nome com fundo preto transparente.
+        campo_transparente = pygame.Surface(
+            (campo_nome.width, campo_nome.height),
+            pygame.SRCALPHA
+        )
+
+        campo_transparente.fill((0, 0, 0, 150))
+
+        tela.blit(campo_transparente, campo_nome.topleft)
+
+        pygame.draw.rect(
+            tela,
+            DOURADO,
+            campo_nome,
+            2,
+        )
+
+        pygame.draw.rect(
+            tela,
+            DOURADO,
+            campo_nome,
+            2,
+        )
+
+        texto_nome = nome if nome else "DIGITE SEU NOME"
+
+        cor_nome = BRANCO if nome else (150, 150, 150)
+
+        superficie_nome = fonte_botao.render(
+            texto_nome,
+            True,
+            cor_nome,
+        )
+
+        tela.blit(
+            superficie_nome,
+            superficie_nome.get_rect(
+                center=campo_nome.center
+            ),
+        )
+
+        # Botões.
+        desenhar_botao(
+            tela,
+            "CONFIRMAR",
+            botao_confirmar,
+            fonte_botao,
+            mouse_pos,
+            imagem_botao,
+        )
+
+        desenhar_botao(
+            tela,
+            "VOLTAR",
+            botao_voltar,
+            fonte_botao,
+            mouse_pos,
+            imagem_botao,
+        )
+
+        pygame.display.flip()
+        relogio.tick(FPS)
+
+    pygame.key.stop_text_input()
+    return None, False
+
+
+# ==================================================
 # MÚSICA DO MENU
 # ==================================================
 
@@ -312,6 +516,7 @@ def iniciar_jogo():
     # Carregar imagens.
     logo = carregar_logo()
     fundo_menu = carregar_fundo_menu()
+    fundo_identificacao = carregar_fundo_identificacao()
     imagem_botao = carregar_imagem_botao()
 
     # Posições dos botões.
@@ -334,6 +539,8 @@ def iniciar_jogo():
     tela_atual = "menu"
     executando = True
     mouse_sobre_botao = None
+
+    nome_jogador = None
 
     while executando:
         mouse_pos = pygame.mouse.get_pos()
@@ -381,10 +588,51 @@ def iniciar_jogo():
 
                     if botao_jogar.collidepoint(evento.pos):
 
+                        # Solicita o nome somente na primeira vez.
+                        if nome_jogador is None:
+
+                            nome_escolhido, fechar_jogo = mostrar_tela_nome(
+                                tela,
+                                relogio,
+                                fundo_identificacao,
+                                fonte_titulo,
+                                fonte_texto,
+                                fonte_botao,
+                                imagem_botao,
+                                som_click,
+                            )
+
+                            if fechar_jogo:
+                                executando = False
+                                continue
+
+                            # Se voltar, retorna ao menu sem iniciar a partida.
+                            if nome_escolhido is None:
+                                continue
+
+                            nome_jogador = nome_escolhido
+
                         transicao_concluida = mostrar_fade_transicao(
                             tela,
                             relogio
                         )
+
+                        if not transicao_concluida:
+                            executando = False
+                            continue
+
+                        parar_musica_menu()
+
+                        resultado = iniciar_partida(
+                            tela,
+                            relogio,
+                            nome_jogador
+                        )
+
+                        if resultado == "sair":
+                            executando = False
+                        else:
+                            iniciar_musica_menu()
 
                         if not transicao_concluida:
                             executando = False

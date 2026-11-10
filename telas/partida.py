@@ -197,8 +197,8 @@ def desenhar_texto_vencedor(
 # TELA DA PARTIDA
 # ==================================================
 
-def iniciar_partida(tela, relogio):
-    partida = Partida()
+def iniciar_partida(tela, relogio, nome_jogador="Você"):
+    partida = Partida(nome_jogador)
     partida.pontos_jogador = 0
 
     if CAMINHO_MUSICA_PARTIDA.exists():

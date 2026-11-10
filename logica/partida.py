@@ -17,8 +17,9 @@ from logica.regras_truco import (
 
 
 class Partida:
-    def __init__(self):
-        self.jogador = Jogador("Você")
+
+    def __init__(self, nome_jogador="Você"):
+        self.jogador = Jogador(nome_jogador)
         self.computador = Jogador("Computador")
 
         self.pontos_jogador = 0
