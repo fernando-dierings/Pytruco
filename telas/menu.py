@@ -1,5 +1,3 @@
-from PIL import Image, ImageSequence, ImageOps
-
 from pathlib import Path
 import pygame
 
@@ -41,57 +39,19 @@ def carregar_logo():
     return pygame.transform.scale(imagem, (largura, altura))
 
 
-def carregar_gif_menu():
+def carregar_fundo_menu():
     if not CAMINHO_FUNDO_MENU.exists():
-        print(f"GIF do menu não encontrado: {CAMINHO_FUNDO_MENU}")
-        return []
-
-    quadros = []
-
-    with Image.open(CAMINHO_FUNDO_MENU) as gif:
-        for quadro in ImageSequence.Iterator(gif):
-
-            imagem = ImageOps.fit(
-                quadro.convert("RGBA"),
-                (LARGURA, ALTURA),
-                method=Image.Resampling.NEAREST
-            )
-
-            superficie = pygame.image.fromstring(
-                imagem.tobytes(),
-                imagem.size,
-                "RGBA"
-            ).convert_alpha()
-
-            duracao = max(
-                20,
-                int(quadro.info.get("duration", 100))
-            )
-
-            quadros.append((superficie, duracao))
-
-    return quadros
-
-
-def obter_quadro_gif(quadros, inicio_animacao):
-    if not quadros:
+        print(f"Fundo do menu não encontrado: {CAMINHO_FUNDO_MENU}")
         return None
 
-    tempo = pygame.time.get_ticks() - inicio_animacao
+    imagem = pygame.image.load(
+        str(CAMINHO_FUNDO_MENU)
+    ).convert()
 
-    duracao_total = sum(
-        duracao for _, duracao in quadros
+    return pygame.transform.scale(
+        imagem,
+        (LARGURA, ALTURA)
     )
-
-    tempo_gif = tempo % duracao_total
-
-    for imagem, duracao in quadros:
-        if tempo_gif < duracao:
-            return imagem
-
-        tempo_gif -= duracao
-
-    return quadros[0][0]
 
 
 def mostrar_fade_transicao(tela, relogio):
@@ -351,8 +311,7 @@ def iniciar_jogo():
 
     # Carregar imagens.
     logo = carregar_logo()
-    quadros_menu = carregar_gif_menu()
-    inicio_animacao_menu = pygame.time.get_ticks()
+    fundo_menu = carregar_fundo_menu()
     imagem_botao = carregar_imagem_botao()
 
     # Posições dos botões.
@@ -378,10 +337,6 @@ def iniciar_jogo():
 
     while executando:
         mouse_pos = pygame.mouse.get_pos()
-        fundo_atual = obter_quadro_gif(
-            quadros_menu,
-            inicio_animacao_menu
-        )
 
         # Verifica em qual botão o mouse está.
         botao_atual = None
@@ -466,8 +421,8 @@ def iniciar_jogo():
 
         if tela_atual == "menu":
 
-            if fundo_atual:
-                tela.blit(fundo_atual, (0, 0))
+            if fundo_menu:
+                tela.blit(fundo_menu, (0, 0))
             else:
                 tela.fill(VERDE_MESA)
 
@@ -525,7 +480,7 @@ def iniciar_jogo():
                 tela,
                 fonte_titulo,
                 fonte_texto,
-                fundo_atual,
+                fundo_menu,
             )
 
         elif tela_atual == "creditos":
@@ -533,7 +488,7 @@ def iniciar_jogo():
                 tela,
                 fonte_titulo,
                 fonte_texto,
-                fundo_atual,
+                fundo_menu,
             )
 
         pygame.display.flip()
