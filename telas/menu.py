@@ -93,6 +93,43 @@ def obter_quadro_gif(quadros, inicio_animacao):
 
     return quadros[0][0]
 
+
+def mostrar_fade_transicao(tela, relogio):
+    imagem_menu = tela.copy()
+
+    duracao_fade = 1000
+    inicio = pygame.time.get_ticks()
+
+    sombra = pygame.Surface((LARGURA, ALTURA))
+    sombra.fill((0, 0, 0))
+
+    while True:
+        tempo = pygame.time.get_ticks() - inicio
+
+        if tempo >= duracao_fade:
+            break
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                return False
+
+        progresso = tempo / duracao_fade
+        transparencia = int(255 * progresso)
+
+        tela.blit(imagem_menu, (0, 0))
+
+        sombra.set_alpha(transparencia)
+        tela.blit(sombra, (0, 0))
+
+        pygame.display.flip()
+        relogio.tick(FPS)
+
+    tela.blit(imagem_menu, (0, 0))
+    sombra.set_alpha(255)
+    tela.blit(sombra, (0, 0))
+    pygame.display.flip()
+
+    return True
 def carregar_imagem_botao():
     if not CAMINHO_BOTAO.exists():
         print(f"Botão não encontrado: {CAMINHO_BOTAO}")
@@ -389,10 +426,17 @@ def iniciar_jogo():
 
                     if botao_jogar.collidepoint(evento.pos):
 
-                        # Parar a música do menu.
+                        transicao_concluida = mostrar_fade_transicao(
+                            tela,
+                            relogio
+                        )
+
+                        if not transicao_concluida:
+                            executando = False
+                            continue
+
                         parar_musica_menu()
 
-                        # Iniciar a partida diretamente.
                         resultado = iniciar_partida(tela, relogio)
 
                         if resultado == "sair":
