@@ -157,6 +157,53 @@ def desenhar_verso_carta(
 
     return retangulo
 
+def desenhar_baralho(tela, imagem, x, y, quantidade=6):
+
+    # Cada carta representa uma camada do baralho.
+    quantidade = max(0, min(6, quantidade))
+
+    for indice in range(quantidade):
+
+        deslocamento = indice * 2
+
+        desenhar_verso_carta(
+            tela,
+            imagem,
+            x + deslocamento,
+            y - deslocamento,
+        )
+
+def desenhar_carta_em_movimento(
+        tela, imagem, origem, destino, progresso
+):
+    largura = 100
+    altura = 145
+
+    # Suaviza o movimento.
+    progresso_suave = 1 - (1 - progresso) ** 3
+
+    # Calcula a posição atual da carta.
+    x = origem[0] + (destino[0] - origem[0]) * progresso_suave
+    y = origem[1] + (destino[1] - origem[1]) * progresso_suave
+
+    # Pequena rotação durante o movimento.
+    angulo = math.sin(progresso * math.pi) * 12
+
+    # Redimensiona e rotaciona o verso da carta.
+    carta = pygame.transform.smoothscale(
+        imagem,
+        (largura, altura)
+    )
+
+    carta = pygame.transform.rotate(carta, angulo)
+
+    # Mantém o centro da carta na trajetória.
+    retangulo = carta.get_rect(
+        center=(int(x), int(y))
+    )
+
+    tela.blit(carta, retangulo)
+
 def desenhar_texto_vencedor(
         tela, texto, fonte, centro_x, centro_y, tempo
 ):
@@ -292,6 +339,35 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
 
     mensagem = "Clique em uma carta para jogar."
 
+    # Animação de distribuição das cartas.
+    DURACAO_DISTRIBUICAO = 450
+    INTERVALO_DISTRIBUICAO = 250
+    DURACAO_REVELACAO = 500
+
+    distribuicao_ativa = True
+    distribuicao_inicio = pygame.time.get_ticks()
+
+    # Etapa da distribuição:
+    # 0 = primeira carta do jogador
+    # 1 = primeira carta do computador
+    # 2 = segunda carta do jogador...
+    indice_distribuicao = -1
+    etapa_distribuicao = 0
+    progresso_distribuicao = 0.0
+
+    # Controle da revelação simultânea.
+    revelacao_inicio = None
+
+    # Posição do baralho, à esquerda e centralizado verticalmente.
+    BARALHO_X = 45
+    BARALHO_Y = (ALTURA - 145) // 2
+
+    # Tamanho das cartas durante a animação.
+    LARGURA_CARTA = 100
+    ALTURA_CARTA = 145
+
+    mensagem = "Distribuindo as cartas..."
+
     # Animação da carta do jogador
     DURACAO_ANIMACAO_CARTA = 500
     animacao_carta_jogador_inicio = None
@@ -329,9 +405,73 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
     # ==================================================
 
     while True:
+
+        # ------------------------------------------
+        # CONTROLE DA DISTRIBUIÇÃO DAS CARTAS
+        # ------------------------------------------
+
+        if distribuicao_ativa:
+            agora = pygame.time.get_ticks()
+
+            tempo_decorrido = agora - distribuicao_inicio
+
+            duracao_etapa = (
+                    DURACAO_DISTRIBUICAO + INTERVALO_DISTRIBUICAO
+            )
+
+            tempo_total = (
+                    5 * duracao_etapa + DURACAO_DISTRIBUICAO
+            )
+
+            if tempo_decorrido < tempo_total:
+
+                etapa_distribuicao = min(
+                    int(tempo_decorrido // duracao_etapa),
+                    5
+                )
+
+                tempo_etapa = tempo_decorrido % duracao_etapa
+
+                progresso_distribuicao = min(
+                    1.0,
+                    tempo_etapa / DURACAO_DISTRIBUICAO
+                )
+
+                # Toca o som apenas quando uma nova carta começa.
+                if etapa_distribuicao != indice_distribuicao:
+
+                    indice_distribuicao = etapa_distribuicao
+
+                    if etapa_distribuicao % 2 == 0:
+                        som_carta_jogador.play()
+                    else:
+                        som_carta_computador.play()
+
+            else:
+                etapa_distribuicao = 6
+                progresso_distribuicao = 1.0
+
+                # Inicia a revelação simultânea.
+                if revelacao_inicio is None:
+                    revelacao_inicio = agora
+
+                elif agora - revelacao_inicio >= DURACAO_REVELACAO:
+                    distribuicao_ativa = False
+
         quantidade = len(partida.jogador.cartas)
         espacamento = 120
         inicio_x = (LARGURA - quantidade * espacamento) // 2
+
+        # Posições finais das cartas.
+        posicoes_jogador = [
+            (inicio_x + i * espacamento, 480)
+            for i in range(3)
+        ]
+
+        posicoes_computador = [
+            (inicio_x + i * espacamento, 120)
+            for i in range(3)
+        ]
 
         botoes_cartas = []
 
@@ -341,6 +481,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 pygame.Rect(x, 445, 100, 145)
             )
 
+
         # ------------------------------------------
         # ESPERA PARA O COMPUTADOR JOGAR
         # ------------------------------------------
@@ -349,7 +490,8 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
         # ------------------------------------------
 
         if (
-                partida.quem_comeca_rodada == "computador"
+                not distribuicao_ativa
+                and partida.quem_comeca_rodada == "computador"
                 and not computador_ja_comecou
                 and not aguardando_proxima
                 and not partida.mao_encerrada
@@ -500,10 +642,14 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                     pygame.mixer.music.stop()
                     return "menu"
 
+            if distribuicao_ativa:
+                continue
+
             if (
                     evento.type != pygame.MOUSEBUTTONDOWN
                     or evento.button != 1
             ):
+                continue
                 continue
 
             # Tela final: clique inicia nova partida.
@@ -790,6 +936,56 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
         )
 
         # ==========================================
+        # DISTRIBUIÇÃO DAS CARTAS
+        # ==========================================
+
+        if distribuicao_ativa:
+
+            # Desenha o baralho à esquerda, no centro vertical.
+            cartas_no_baralho = max(
+                0,
+                5 - etapa_distribuicao,
+            )
+
+            desenhar_baralho(
+                tela,
+                imagem_verso_carta,
+                BARALHO_X,
+                BARALHO_Y,
+                cartas_no_baralho,
+            )
+
+            if (etapa_distribuicao < 6 and indice_distribuicao >= 0and indice_distribuicao < 6):
+
+                # Alterna entre jogador e computador.
+                if indice_distribuicao % 2 == 0:
+                    indice_destino = indice_distribuicao // 2
+                    destino = posicoes_jogador[indice_destino]
+
+                else:
+                    indice_destino = indice_distribuicao // 2
+                    destino = posicoes_computador[indice_destino]
+
+                # Origem e destino usam o centro da carta.
+                origem = (
+                    BARALHO_X + 52,
+                    BARALHO_Y + 72,
+                )
+
+                destino_centro = (
+                    destino[0] + 50,
+                    destino[1] + 72,
+                )
+
+                desenhar_carta_em_movimento(
+                    tela,
+                    imagem_verso_carta,
+                    origem,
+                    destino_centro,
+                    progresso_distribuicao,
+                )
+
+        # ==========================================
         # CARTAS DO COMPUTADOR
         # ==========================================
 
@@ -804,7 +1000,16 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
 
         inicio_versos = (LARGURA - largura_total) // 2
 
-        for indice in range(cartas_restantes_computador):
+        # Quantidade de cartas que já chegaram ao computador.
+        if distribuicao_ativa:
+            quantidade_exibida = min(
+                3,
+                etapa_distribuicao // 2
+            )
+        else:
+            quantidade_exibida = cartas_restantes_computador
+
+        for indice in range(quantidade_exibida):
             x = inicio_versos + indice * espacamento_versos
 
             desenhar_verso_carta(
@@ -1049,6 +1254,66 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
 
             retangulo = pygame.Rect(x, y, 100, 145)
 
+            # Durante a distribuição, controla quais cartas já chegaram.
+            if distribuicao_ativa:
+
+                if etapa_distribuicao < 6:
+                    cartas_distribuidas = (etapa_distribuicao + 1) // 2
+                else:
+                    cartas_distribuidas = 3
+
+                # Ainda não chegou a vez desta carta.
+                if indice >= cartas_distribuidas:
+                    continue
+
+                # Durante a revelação, todas viram simultaneamente.
+                if etapa_distribuicao == 6:
+
+                    progresso_revelacao = min(
+                        1.0,
+                        (pygame.time.get_ticks() - revelacao_inicio)
+                        / DURACAO_REVELACAO,
+                    )
+
+                    largura = max(
+                        1,
+                        int(100 * abs(math.cos(math.pi * progresso_revelacao))),
+                    )
+
+                    x_desenho = x + (100 - largura) // 2
+
+                    if progresso_revelacao < 0.5:
+                        desenhar_verso_carta(
+                            tela,
+                            imagem_verso_carta,
+                            x_desenho,
+                            y,
+                            largura,
+                            145,
+                        )
+                    else:
+                        desenhar_carta(
+                            tela,
+                            carta,
+                            x_desenho,
+                            y,
+                            imagens_cartas,
+                            largura,
+                            145,
+                        )
+
+                else:
+                    # Carta já distribuída, mas ainda virada para baixo.
+                    desenhar_verso_carta(
+                        tela,
+                        imagem_verso_carta,
+                        x,
+                        y,
+                    )
+
+                continue
+
+            # Exibição normal após a distribuição.
             mouse_sobre_carta = retangulo.collidepoint(pos_mouse)
 
             carta_disponivel = (
