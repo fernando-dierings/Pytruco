@@ -648,6 +648,7 @@ def iniciar_jogo():
 
                         if resultado == "sair":
                             executando = False
+                            break
                         else:
                             iniciar_musica_menu()
 
