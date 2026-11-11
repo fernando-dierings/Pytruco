@@ -762,14 +762,20 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
         )
 
         # Placar.
-        placar = fonte_pequena.render(
-            f"VOCÊ: {partida.pontos_jogador} | "
+        placar_jogador = fonte_pequena.render(
+            f"{partida.jogador.nome}: {partida.pontos_jogador}",
+            True,
+            BRANCO,
+        )
+
+        placar_computador = fonte_pequena.render(
             f"COMPUTADOR: {partida.pontos_computador}",
             True,
             BRANCO,
         )
 
-        tela.blit(placar, (35, 35))
+        tela.blit(placar_jogador, (30, 10))
+        tela.blit(placar_computador, (30, 35))
 
         # Valor da mão.
         texto_valor = fonte_pequena.render(
