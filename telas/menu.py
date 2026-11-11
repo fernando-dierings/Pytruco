@@ -14,9 +14,11 @@ from settings import (
     CAMINHO_FUNDO_MENU,
     CAMINHO_FUNDO_PARTIDA2,
     CAMINHO_BOTAO,
+    CAMINHO_BOTAO_CONFIRMAR,
     CAMINHO_MUSICA_MENU,
     CAMINHO_SOM_ROLLOVER,
     CAMINHO_SOM_CLICK,
+    CAMINHO_SOM_TECLADO
 )
 from telas.partida import iniciar_partida
 
@@ -115,6 +117,18 @@ def carregar_imagem_botao():
 
     return pygame.image.load(
         str(CAMINHO_BOTAO)
+    ).convert_alpha()
+
+def carregar_imagem_botao_confirmar():
+    if not CAMINHO_BOTAO_CONFIRMAR.exists():
+        print(
+            f"Botão confirmar não encontrado: "
+            f"{CAMINHO_BOTAO_CONFIRMAR}"
+        )
+        return None
+
+    return pygame.image.load(
+        str(CAMINHO_BOTAO_CONFIRMAR)
     ).convert_alpha()
 
 
@@ -280,11 +294,13 @@ def mostrar_tela_nome(
     tela,
     relogio,
     fundo,
-    fonte_titulo,
+    logo,
     fonte_texto,
     fonte_botao,
     imagem_botao,
+    imagem_botao_confirmar,
     som_click,
+    som_teclado
 ):
     nome = ""
 
@@ -297,16 +313,16 @@ def mostrar_tela_nome(
     )
 
     botao_confirmar = pygame.Rect(
-        LARGURA // 2 - 210,
+        LARGURA // 2 + 15,
         440,
-        200,
+        190,
         55,
     )
 
     botao_voltar = pygame.Rect(
-        LARGURA // 2 + 10,
+        LARGURA // 2 - 205,
         440,
-        200,
+        190,
         55,
     )
 
@@ -323,9 +339,13 @@ def mostrar_tela_nome(
                 pygame.key.stop_text_input()
                 return None, True
 
+
             elif evento.type == pygame.TEXTINPUT:
-                nome += evento.text
-                nome = nome[:16]
+
+                if len(nome) < 16:
+                    nome += evento.text
+
+                    som_teclado.play()
 
             elif evento.type == pygame.KEYDOWN:
 
@@ -362,26 +382,19 @@ def mostrar_tela_nome(
         else:
             tela.fill(VERDE_MESA)
 
-
-        # Título.
-        titulo = fonte_titulo.render(
-            "BUENAS, VIVENTE!",
-            True,
-            DOURADO,
-        )
-
+        # Logo centralizada.
         tela.blit(
-            titulo,
-            titulo.get_rect(
+            logo,
+            logo.get_rect(
                 center=(LARGURA // 2, 220)
             ),
         )
 
         # Instrução.
         instrucao = fonte_texto.render(
-            "COMO DEVEMOS TE CHAMAR?",
+            "",
             True,
-            BRANCO,
+            DOURADO,
         )
 
         tela.blit(
@@ -408,14 +421,8 @@ def mostrar_tela_nome(
             2,
         )
 
-        pygame.draw.rect(
-            tela,
-            DOURADO,
-            campo_nome,
-            2,
-        )
 
-        texto_nome = nome if nome else "DIGITE SEU NOME"
+        texto_nome = nome if nome else "DIGITE SEU NOME:"
 
         cor_nome = BRANCO if nome else (150, 150, 150)
 
@@ -439,7 +446,7 @@ def mostrar_tela_nome(
             botao_confirmar,
             fonte_botao,
             mouse_pos,
-            imagem_botao,
+            imagem_botao_confirmar,
         )
 
         desenhar_botao(
@@ -494,6 +501,11 @@ def carregar_sons_menu():
 
     return som_rollover, som_click
 
+def carregar_som_teclado():
+    som = pygame.mixer.Sound(str(CAMINHO_SOM_TECLADO))
+    som.set_volume(0.15)
+    return som
+
 
 # ==================================================
 # MENU PRINCIPAL
@@ -502,6 +514,7 @@ def carregar_sons_menu():
 def iniciar_jogo():
     pygame.init()
     iniciar_musica_menu()
+    som_teclado = carregar_som_teclado()
     som_rollover, som_click = carregar_sons_menu()
 
     tela = pygame.display.set_mode((LARGURA, ALTURA))
@@ -518,6 +531,7 @@ def iniciar_jogo():
     fundo_menu = carregar_fundo_menu()
     fundo_identificacao = carregar_fundo_identificacao()
     imagem_botao = carregar_imagem_botao()
+    imagem_botao_confirmar = carregar_imagem_botao_confirmar()
 
     # Posições dos botões.
     botao_jogar = pygame.Rect(
@@ -595,11 +609,14 @@ def iniciar_jogo():
                                 tela,
                                 relogio,
                                 fundo_identificacao,
-                                fonte_titulo,
+                                logo,
+
                                 fonte_texto,
                                 fonte_botao,
                                 imagem_botao,
+                                imagem_botao_confirmar,
                                 som_click,
+                                som_teclado
                             )
 
                             if fechar_jogo:
