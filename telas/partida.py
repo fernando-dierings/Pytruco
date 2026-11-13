@@ -11,6 +11,9 @@ from settings import (
     PRETO,
     DOURADO,
     PONTOS_PARA_VENCER,
+    CAMINHO_BOTAO_AVISO,
+    CAMINHO_BOTAO1,
+    CAMINHO_BOTAO_CONFIRMAR1,
     CAMINHO_FONTE,
     CAMINHO_FUNDO_PARTIDA,
     CAMINHO_LOGO_PLACA,
@@ -98,6 +101,37 @@ def carregar_verso_carta():
 
     return pygame.image.load(str(CAMINHO_VERSO_CARTA)).convert_alpha()
 
+def carregar_imagem_botao(caminho):
+    if not caminho.exists():
+        print(f"Imagem do botão não encontrada: {caminho}")
+        return None
+
+    imagem = pygame.image.load(str(caminho)).convert_alpha()
+
+    return pygame.transform.smoothscale(
+        imagem,
+        (200, 45)
+    )
+
+def alterar_cor_botao(imagem, cor):
+    imagem = imagem.copy()
+
+    camada = pygame.Surface(
+        imagem.get_size(),
+        pygame.SRCALPHA
+    )
+
+    camada.fill(cor)
+
+    imagem.blit(
+        camada,
+        (0, 0),
+        special_flags=pygame.BLEND_RGBA_MULT
+    )
+
+    return imagem
+
+
 # ==================================================
 # DESENHO DAS CARTAS
 # ==================================================
@@ -157,13 +191,12 @@ def desenhar_verso_carta(
 
     return retangulo
 
-def desenhar_baralho(tela, imagem, x, y, quantidade=6):
 
+def desenhar_baralho(tela, imagem, x, y, quantidade=6):
     # Cada carta representa uma camada do baralho.
     quantidade = max(0, min(6, quantidade))
 
     for indice in range(quantidade):
-
         deslocamento = indice * 2
 
         desenhar_verso_carta(
@@ -172,6 +205,7 @@ def desenhar_baralho(tela, imagem, x, y, quantidade=6):
             x + deslocamento,
             y - deslocamento,
         )
+
 
 def desenhar_carta_em_movimento(
         tela, imagem, origem, destino, progresso
@@ -203,6 +237,7 @@ def desenhar_carta_em_movimento(
     )
 
     tela.blit(carta, retangulo)
+
 
 def desenhar_texto_vencedor(
         tela, texto, fonte, centro_x, centro_y, tempo
@@ -240,12 +275,13 @@ def desenhar_texto_vencedor(
     tela.blit(superficie_sombra, retangulo_sombra)
     tela.blit(superficie_texto, retangulo)
 
+
 # ==================================================
 # TELA DA PARTIDA
 # ==================================================
 
 def iniciar_partida(tela, relogio, nome_jogador="Você"):
-    partida = Partida(nome_jogador)
+    partida = Partida(nome_jogador.upper())
     partida.pontos_jogador = 0
 
     if CAMINHO_MUSICA_PARTIDA.exists():
@@ -293,6 +329,9 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
     imagens_cartas = carregar_imagens_cartas()
     fundo_partida = carregar_fundo()
     imagem_verso_carta = carregar_verso_carta()
+    imagem_botao_aviso = carregar_imagem_botao(CAMINHO_BOTAO_AVISO)
+    imagem_botao = carregar_imagem_botao(CAMINHO_BOTAO1)
+    imagem_botao_confirmar = carregar_imagem_botao(CAMINHO_BOTAO_CONFIRMAR1)
 
     # Logo da partida
     logo_partida = pygame.image.load(
@@ -328,6 +367,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
     carta_hover_anterior = None
     carta_jogador_pendente = None
     carta_computador_pendente = None
+    truco_aceito_jogador = False
 
     tempo_jogada = 0
     computador_ja_comecou = False
@@ -344,6 +384,12 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
     INTERVALO_DISTRIBUICAO = 250
     DURACAO_REVELACAO = 500
 
+    # Controla a velocidade das distribuições.
+    primeira_distribuicao = True
+
+    duracao_distribuicao_atual = 450
+    intervalo_distribuicao_atual = 250
+    duracao_revelacao_atual = 500
     distribuicao_ativa = True
     distribuicao_inicio = pygame.time.get_ticks()
 
@@ -416,12 +462,15 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
             tempo_decorrido = agora - distribuicao_inicio
 
             duracao_etapa = (
-                    DURACAO_DISTRIBUICAO + INTERVALO_DISTRIBUICAO
+                    duracao_distribuicao_atual
+                    + intervalo_distribuicao_atual
             )
 
             tempo_total = (
-                    5 * duracao_etapa + DURACAO_DISTRIBUICAO
+                    5 * duracao_etapa
+                    + duracao_distribuicao_atual
             )
+
 
             if tempo_decorrido < tempo_total:
 
@@ -434,7 +483,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
 
                 progresso_distribuicao = min(
                     1.0,
-                    tempo_etapa / DURACAO_DISTRIBUICAO
+                    tempo_etapa / duracao_distribuicao_atual
                 )
 
                 # Toca o som apenas quando uma nova carta começa.
@@ -455,8 +504,9 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 if revelacao_inicio is None:
                     revelacao_inicio = agora
 
-                elif agora - revelacao_inicio >= DURACAO_REVELACAO:
+                elif agora - revelacao_inicio >= duracao_revelacao_atual:
                     distribuicao_ativa = False
+                    mensagem = "Sua vez! Clique em uma carta."
 
         quantidade = len(partida.jogador.cartas)
         espacamento = 120
@@ -480,7 +530,6 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
             botoes_cartas.append(
                 pygame.Rect(x, 445, 100, 145)
             )
-
 
         # ------------------------------------------
         # ESPERA PARA O COMPUTADOR JOGAR
@@ -576,17 +625,28 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 mensagem = "Rodada empatada! Clique para continuar."
                 aguardando_proxima = True
 
-        # Detectar mouse sobre ACEITAR e CORRER
+        # Detectar mouse sobre os botões.
         botao_hover_atual = None
+        pos_mouse = pygame.mouse.get_pos()
 
         if partida.truco_pendente_computador:
-            pos_mouse = pygame.mouse.get_pos()
 
             if botao_aceitar.collidepoint(pos_mouse):
                 botao_hover_atual = "aceitar"
 
             elif botao_correr.collidepoint(pos_mouse):
                 botao_hover_atual = "correr"
+
+        else:
+            truco_disponivel = (
+                    not partida.truco_pedido
+                    and not partida.mao_encerrada
+                    and not aguardando_proxima
+                    and carta_jogador_pendente is None
+            )
+
+            if truco_disponivel and botao_truco.collidepoint(pos_mouse):
+                botao_hover_atual = "truco"
 
         if (
                 botao_hover_atual is not None
@@ -657,6 +717,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 parar_falas()
 
                 partida = Partida()
+                truco_aceito_jogador = False
 
                 musica_vitoria.stop()
                 musica_derrota.stop()
@@ -714,10 +775,31 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                         or not partida.jogador.tem_cartas()
                 ):
                     partida.nova_mao()
+                    truco_aceito_jogador = False
+
+                    # A partir da segunda mão, acelera a distribuição.
+                    if primeira_distribuicao:
+                        primeira_distribuicao = False
+
+                        duracao_distribuicao_atual = 200
+                        intervalo_distribuicao_atual = 50
+                        duracao_revelacao_atual = 200
+
+                    # Reinicia a animação de distribuição.
+                    distribuicao_ativa = True
+                    distribuicao_inicio = pygame.time.get_ticks()
+
+                    indice_distribuicao = -1
+                    etapa_distribuicao = 0
+                    progresso_distribuicao = 0.0
+
+                    revelacao_inicio = None
+
+                    mensagem = "Distribuindo as cartas..."
 
                     carta_jogador = None
                     carta_computador = None
-                    mensagem = "Nova mão! Clique em uma carta."
+                    mensagem = "Nova mão! Distribuindo as cartas..."
 
                 else:
                     carta_jogador = None
@@ -739,8 +821,12 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 if isinstance(resultado_truco, dict):
                     mensagem = resultado_truco["mensagem"]
 
+                    if resultado_truco["status"] == "aceito":
+                        truco_aceito_jogador = True
+
                     if resultado_truco["status"] == "recusado":
                         aguardando_proxima = True
+
                 else:
                     mensagem = resultado_truco
 
@@ -955,7 +1041,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 cartas_no_baralho,
             )
 
-            if (etapa_distribuicao < 6 and indice_distribuicao >= 0and indice_distribuicao < 6):
+            if (etapa_distribuicao < 6 and indice_distribuicao >= 0 and indice_distribuicao < 6):
 
                 # Alterna entre jogador e computador.
                 if indice_distribuicao % 2 == 0:
@@ -1272,7 +1358,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                     progresso_revelacao = min(
                         1.0,
                         (pygame.time.get_ticks() - revelacao_inicio)
-                        / DURACAO_REVELACAO,
+                        / duracao_revelacao_atual,
                     )
 
                     largura = max(
@@ -1358,22 +1444,21 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
         # ==========================================
 
         if partida.truco_pendente_computador:
-            pygame.draw.rect(
-                tela,
-                (35, 145, 65),
-                botao_aceitar,
-                border_radius=8
-            )
 
-            pygame.draw.rect(
-                tela,
-                DOURADO,
-                botao_aceitar,
-                2,
-                border_radius=8
-            )
+            # Botão ACEITAR.
+            if imagem_botao_confirmar:
+                tela.blit(imagem_botao_confirmar, botao_aceitar)
+            else:
+                pygame.draw.rect(
+                    tela, (35, 145, 65), botao_aceitar,
+                    border_radius=8
+                )
 
-            cor_texto = AMARELO if botao_hover_atual == "aceitar" else BRANCO
+            cor_texto = (
+                AMARELO
+                if botao_hover_atual == "aceitar"
+                else BRANCO
+            )
 
             texto = fonte_pequena.render(
                 "ACEITAR", True, cor_texto
@@ -1384,22 +1469,20 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 texto.get_rect(center=botao_aceitar.center),
             )
 
-            pygame.draw.rect(
-                tela,
-                (180, 45, 45),
-                botao_correr,
-                border_radius=8
-            )
+            # Botão CORRER.
+            if imagem_botao:
+                tela.blit(imagem_botao, botao_correr)
+            else:
+                pygame.draw.rect(
+                    tela, (180, 45, 45), botao_correr,
+                    border_radius=8
+                )
 
-            pygame.draw.rect(
-                tela,
-                DOURADO,
-                botao_correr,
-                2,
-                border_radius=8
+            cor_texto = (
+                AMARELO
+                if botao_hover_atual == "correr"
+                else BRANCO
             )
-
-            cor_texto = AMARELO if botao_hover_atual == "correr" else BRANCO
 
             texto = fonte_pequena.render(
                 "CORRER", True, cor_texto
@@ -1410,55 +1493,75 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 texto.get_rect(center=botao_correr.center),
             )
 
+
         else:
+
             truco_disponivel = (
+
                     not partida.truco_pedido
+
                     and not partida.mao_encerrada
+
                     and not aguardando_proxima
+
                     and carta_jogador_pendente is None
+
             )
 
-            cor_botao = (
-                (180, 45, 45)
-                if truco_disponivel
-                else (90, 90, 90)
-            )
+            # Escolhe a imagem e o texto do botão.
 
-            pygame.draw.rect(
-                tela,
-                cor_botao,
-                botao_truco,
-                border_radius=8
-            )
+            if truco_aceito_jogador:
+                imagem_atual = imagem_botao_aviso
+                texto_botao = "TRUCO ACEITO!"
+            else:
+                imagem_atual = imagem_botao
+                texto_botao = "PEDIR TRUCO"
 
-            pygame.draw.rect(
-                tela,
-                DOURADO,
-                botao_truco,
-                2,
-                border_radius=8
+            # Desenha o botão.
+
+            if imagem_atual:
+
+                tela.blit(imagem_atual, botao_truco)
+
+            else:
+
+                pygame.draw.rect(
+
+                    tela, (180, 45, 45), botao_truco,
+
+                    border_radius=8
+
+                )
+
+            # Cor do texto.
+
+            cor_texto = (
+
+                BRANCO
+
+                if truco_aceito_jogador
+
+                else AMARELO
+
+                if botao_hover_atual == "truco"
+
+                else BRANCO
+
             )
 
             texto = fonte_pequena.render(
-                "PEDIR TRUCO", True, BRANCO
+
+                texto_botao, True, cor_texto
+
             )
 
             tela.blit(
+
                 texto,
+
                 texto.get_rect(center=botao_truco.center),
+
             )
-
-        # Mensagem.
-        texto_mensagem = fonte_pequena.render(
-            mensagem, True, DOURADO
-        )
-
-        tela.blit(
-            texto_mensagem,
-            texto_mensagem.get_rect(
-                center=(LARGURA // 2, 660)
-            ),
-        )
 
         # Atalho para voltar ao menu.
         ajuda = fonte_pequena.render(
@@ -1468,6 +1571,18 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
         tela.blit(
             ajuda,
             (35, ALTURA - 7 - ajuda.get_height())
+        )
+
+        # Mensagem de orientação na parte inferior.
+        texto_mensagem = fonte_pequena.render(
+            mensagem.upper(), True, DOURADO
+        )
+
+        tela.blit(
+            texto_mensagem,
+            texto_mensagem.get_rect(
+                center=(LARGURA // 2, ALTURA - 42)
+            )
         )
 
         pygame.display.flip()
