@@ -355,6 +355,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
     fonte_pequena = pygame.font.Font(str(CAMINHO_FONTE), 10)
     fonte_vitoria = pygame.font.Font(str(CAMINHO_FONTE), 64)
     fonte_texto_vencedor = pygame.font.Font(str(CAMINHO_FONTE), 7)
+    fonte_boasorte = pygame.font.Font(str(CAMINHO_FONTE), 36)
 
     musica_derrota_tocada = False
     musica_vitoria_tocada = False
@@ -386,6 +387,11 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
 
     # Controla a velocidade das distribuições.
     primeira_distribuicao = True
+
+    # Mensagem especial da primeira distribuição.
+    mostrar_boasorte = True
+    inicio_boasorte = pygame.time.get_ticks()
+    DURACAO_BOASORTE = 4500
 
     duracao_distribuicao_atual = 450
     intervalo_distribuicao_atual = 250
@@ -1574,9 +1580,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
         )
 
         # Mensagem de orientação na parte inferior.
-        texto_mensagem = fonte_pequena.render(
-            mensagem.upper(), True, DOURADO
-        )
+        texto_mensagem = fonte_pequena.render(mensagem.upper(), True, DOURADO)
 
         tela.blit(
             texto_mensagem,
@@ -1584,6 +1588,35 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 center=(LARGURA // 2, ALTURA - 42)
             )
         )
+
+        # Mensagem especial da primeira distribuição.
+        if mostrar_boasorte:
+            tempo_boasorte = pygame.time.get_ticks() - inicio_boasorte
+
+            if tempo_boasorte < DURACAO_BOASORTE:
+                texto_boasorte = fonte_boasorte.render(
+                    "BOA SORTE!", True, DOURADO
+                )
+
+                # Sombra preta.
+                sombra_boasorte = fonte_boasorte.render(
+                    "BOA SORTE!", True, PRETO
+                )
+
+                alpha = int(255 * (1 - tempo_boasorte / DURACAO_BOASORTE))
+
+                texto_boasorte.set_alpha(alpha)
+                sombra_boasorte.set_alpha(alpha)
+
+                posicao = texto_boasorte.get_rect(
+                    center=(LARGURA // 2, ALTURA // 2)
+                )
+
+                tela.blit(sombra_boasorte, (posicao.x + 3, posicao.y + 3))
+                tela.blit(texto_boasorte, posicao)
+
+            else:
+                mostrar_boasorte = False
 
         pygame.display.flip()
         relogio.tick(60)
