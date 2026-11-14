@@ -12,7 +12,7 @@ from settings import (
     CAMINHO_FONTE,
     CAMINHO_LOGO,
     CAMINHO_FUNDO_MENU,
-    CAMINHO_FUNDO_PARTIDA2,
+    CAMINHO_FUNDO_PARTIDA,
     CAMINHO_BOTAO,
     CAMINHO_BOTAO_CONFIRMAR,
     CAMINHO_MUSICA_MENU,
@@ -57,15 +57,15 @@ def carregar_fundo_menu():
     )
 
 def carregar_fundo_identificacao():
-    if not CAMINHO_FUNDO_PARTIDA2.exists():
+    if not CAMINHO_FUNDO_PARTIDA.exists():
         print(
             f"Fundo de identificação não encontrado: "
-            f"{CAMINHO_FUNDO_PARTIDA2}"
+            f"{CAMINHO_FUNDO_PARTIDA}"
         )
         return None
 
     imagem = pygame.image.load(
-        str(CAMINHO_FUNDO_PARTIDA2)
+        str(CAMINHO_FUNDO_PARTIDA)
     ).convert()
 
     return pygame.transform.scale(

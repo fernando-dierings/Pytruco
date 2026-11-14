@@ -27,11 +27,11 @@ CAMINHO_FONTE = (
     / "PressStart2P-Regular.ttf"
 )
 
-CAMINHO_LOGO = PASTA_IMAGENS / "logo_pytruco6.png"
-CAMINHO_LOGO_PLACA= PASTA_IMAGENS / "logo_pytruco_placa2.png"
-CAMINHO_FUNDO_MENU = PASTA_IMAGENS / "fundo_menu4.png"
+CAMINHO_LOGO = PASTA_IMAGENS / "logo_pytruco.png"
+CAMINHO_LOGO_PLACA= PASTA_IMAGENS / "logo_pytruco_placa.png"
+CAMINHO_FUNDO_MENU = PASTA_IMAGENS / "fundo_menu.png"
 CAMINHO_FUNDO_PARTIDA = PASTA_IMAGENS / "fundo_partida.png"
-CAMINHO_FUNDO_PARTIDA2 = PASTA_IMAGENS / "fundo_partida2.png"
+CAMINHO_FUNDO_PARTIDA1 = PASTA_IMAGENS / "fundo_partida1.png"
 CAMINHO_TELA_CARREGAMENTO = PASTA_IMAGENS / "tela_gaucho_animada.gif"
 CAMINHO_TELA_DERROTA = PASTA_IMAGENS / "tela_derrota.png"
 CAMINHO_TELA_VITORIA = PASTA_IMAGENS / "tela_vitoria.png"
