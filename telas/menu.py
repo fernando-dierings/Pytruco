@@ -1,5 +1,3 @@
-from PIL import Image, ImageSequence, ImageOps
-
 from pathlib import Path
 import pygame
 
@@ -14,12 +12,13 @@ from settings import (
     CAMINHO_FONTE,
     CAMINHO_LOGO,
     CAMINHO_FUNDO_MENU,
-    CAMINHO_TELA_CARREGAMENTO,
+    CAMINHO_FUNDO_PARTIDA2,
     CAMINHO_BOTAO,
+    CAMINHO_BOTAO_CONFIRMAR,
     CAMINHO_MUSICA_MENU,
     CAMINHO_SOM_ROLLOVER,
     CAMINHO_SOM_CLICK,
-    CAMINHO_VOZ_CARREGAMENTO
+    CAMINHO_SOM_TECLADO
 )
 from telas.partida import iniciar_partida
 
@@ -43,123 +42,46 @@ def carregar_logo():
     return pygame.transform.scale(imagem, (largura, altura))
 
 
-def carregar_fundo():
+def carregar_fundo_menu():
     if not CAMINHO_FUNDO_MENU.exists():
-        print(f"Imagem de fundo não encontrada: {CAMINHO_FUNDO_MENU}")
+        print(f"Fundo do menu não encontrado: {CAMINHO_FUNDO_MENU}")
         return None
 
-    imagem = pygame.image.load(str(CAMINHO_FUNDO_MENU))
-    return pygame.transform.scale(imagem, (LARGURA, ALTURA))
+    imagem = pygame.image.load(
+        str(CAMINHO_FUNDO_MENU)
+    ).convert()
 
+    return pygame.transform.scale(
+        imagem,
+        (LARGURA, ALTURA)
+    )
 
-# ==================================================
-# TELA DE CARREGAMENTO ANIMADA
-# ==================================================
-
-def carregar_gif_carregamento():
-    if not CAMINHO_TELA_CARREGAMENTO.exists():
+def carregar_fundo_identificacao():
+    if not CAMINHO_FUNDO_PARTIDA2.exists():
         print(
-            f"GIF não encontrado: {CAMINHO_TELA_CARREGAMENTO}"
+            f"Fundo de identificação não encontrado: "
+            f"{CAMINHO_FUNDO_PARTIDA2}"
         )
-        return []
+        return None
 
-    quadros = []
+    imagem = pygame.image.load(
+        str(CAMINHO_FUNDO_PARTIDA2)
+    ).convert()
 
-    with Image.open(CAMINHO_TELA_CARREGAMENTO) as gif:
-        for quadro in ImageSequence.Iterator(gif):
-            imagem = ImageOps.fit(
-                quadro.convert("RGBA"),
-                (LARGURA, ALTURA),
-                method=Image.Resampling.LANCZOS
-            )
-
-            superficie = pygame.image.fromstring(
-                imagem.tobytes(),
-                imagem.size,
-                "RGBA"
-            ).convert_alpha()
-
-            duracao = max(
-                20,
-                int(quadro.info.get("duration", 100))
-            )
-
-            quadros.append((superficie, duracao))
-
-    return quadros
+    return pygame.transform.scale(
+        imagem,
+        (LARGURA, ALTURA)
+    )
 
 
-def mostrar_transicao(tela, relogio, quadros, fonte_titulo):
-    if not quadros:
-        return True
-
-    # Guarda uma imagem do menu atual.
+def mostrar_fade_transicao(tela, relogio):
     imagem_menu = tela.copy()
 
-    duracao_fade = 2000
-    duracao_gif = 11000
-
-    def desenhar_legenda(tela, fonte, tempo):
-        legendas = [
-            (0.0, 2.0, "Senta aí, vivente!"),
-            (2.0, 4.0, "Puxa teu banquinho,"),
-            (4.0, 6.0, "pega o teu mate e vamos ver"),
-            (6.0, 9.0, "se o teu baralho é bom mesmo... ou se tu só fala fiado!")
-        ]
-
-        texto_atual = ""
-        inicio_trecho = 0
-
-        for inicio, fim, texto in legendas:
-            if inicio <= tempo < fim:
-                texto_atual = texto
-                inicio_trecho = inicio
-                break
-
-        if not texto_atual:
-            return
-
-        # Efeito de digitação
-        progresso = min(1.0, (tempo - inicio_trecho) / 0.8)
-        quantidade_letras = int(len(texto_atual) * progresso)
-        texto_parcial = texto_atual[:quantidade_letras]
-
-        # Fonte da legenda
-        fonte_legenda = pygame.font.Font(CAMINHO_FONTE, 14)
-
-        texto_renderizado = fonte_legenda.render(
-            texto_parcial,
-            True,
-            DOURADO
-        )
-
-        # Dimensões do fundo conforme o texto
-        largura_caixa = texto_renderizado.get_width() + 40
-        altura_caixa = texto_renderizado.get_height() + 25
-
-        caixa = pygame.Surface(
-            (largura_caixa, altura_caixa),
-            pygame.SRCALPHA
-        )
-        caixa.fill((0, 0, 0, 180))
-
-        pos_x = (LARGURA - largura_caixa) // 2
-        pos_y = ALTURA - 100
-
-        tela.blit(caixa, (pos_x, pos_y))
-
-        # Centraliza o texto no fundo
-        texto_rect = texto_renderizado.get_rect(
-            center=(LARGURA // 2, pos_y + altura_caixa // 2)
-        )
-
-        tela.blit(texto_renderizado, texto_rect)
-
-    # ------------------------------------------
-    # 1. ESCURECER O MENU
-    # ------------------------------------------
-
+    duracao_fade = 1000
     inicio = pygame.time.get_ticks()
+
+    sombra = pygame.Surface((LARGURA, ALTURA))
+    sombra.fill((0, 0, 0))
 
     while True:
         tempo = pygame.time.get_ticks() - inicio
@@ -176,96 +98,18 @@ def mostrar_transicao(tela, relogio, quadros, fonte_titulo):
 
         tela.blit(imagem_menu, (0, 0))
 
-        sombra = pygame.Surface(
-            (LARGURA, ALTURA)
-        )
-        sombra.fill((0, 0, 0))
         sombra.set_alpha(transparencia)
-
         tela.blit(sombra, (0, 0))
 
         pygame.display.flip()
         relogio.tick(FPS)
 
-    voz_carregamento = pygame.mixer.Sound(
-        str(CAMINHO_VOZ_CARREGAMENTO)
-    )
-
-    voz_carregamento.set_volume(1.0)
-    voz_carregamento.play()
-    # ------------------------------------------
-    # 2. EXIBIR O GIF ANIMADO
-    # ------------------------------------------
-
-    inicio_audio = pygame.time.get_ticks()
-    duracao_total_quadros = sum(
-        duracao for _, duracao in quadros
-    )
-
-    inicio = pygame.time.get_ticks()
-
-    while True:
-        tempo = pygame.time.get_ticks() - inicio
-
-        if tempo >= duracao_gif:
-            break
-
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                return False
-
-        # Descobrir qual quadro do GIF deve aparecer.
-        tempo_gif = tempo % duracao_total_quadros
-
-        quadro_atual = quadros[0][0]
-
-        for imagem, duracao in quadros:
-            if tempo_gif < duracao:
-                quadro_atual = imagem
-                break
-
-            tempo_gif -= duracao
-
-        tela.blit(quadro_atual, (0, 0))
-        tempo_audio = (pygame.time.get_ticks() - inicio_audio) / 1000
-
-        desenhar_legenda(
-            tela,
-            fonte_titulo,
-            tempo_audio
-        )
-
-        # Fade de entrada e saída do GIF.
-        if tempo < duracao_fade:
-            transparencia = int(
-                255 * (1 - tempo / duracao_fade)
-            )
-
-        elif tempo > duracao_gif - duracao_fade:
-            progresso = (
-                                tempo - (duracao_gif - duracao_fade)
-                        ) / duracao_fade
-
-            transparencia = int(255 * progresso)
-
-        else:
-            transparencia = 0
-
-        if transparencia > 0:
-            sombra = pygame.Surface(
-                (LARGURA, ALTURA)
-            )
-            sombra.fill((0, 0, 0))
-            sombra.set_alpha(transparencia)
-
-            tela.blit(sombra, (0, 0))
-
-        pygame.display.flip()
-        relogio.tick(FPS)
+    tela.blit(imagem_menu, (0, 0))
+    sombra.set_alpha(255)
+    tela.blit(sombra, (0, 0))
+    pygame.display.flip()
 
     return True
-
-
 def carregar_imagem_botao():
     if not CAMINHO_BOTAO.exists():
         print(f"Botão não encontrado: {CAMINHO_BOTAO}")
@@ -273,6 +117,18 @@ def carregar_imagem_botao():
 
     return pygame.image.load(
         str(CAMINHO_BOTAO)
+    ).convert_alpha()
+
+def carregar_imagem_botao_confirmar():
+    if not CAMINHO_BOTAO_CONFIRMAR.exists():
+        print(
+            f"Botão confirmar não encontrado: "
+            f"{CAMINHO_BOTAO_CONFIRMAR}"
+        )
+        return None
+
+    return pygame.image.load(
+        str(CAMINHO_BOTAO_CONFIRMAR)
     ).convert_alpha()
 
 
@@ -431,6 +287,185 @@ def mostrar_creditos(tela, fonte_titulo, fonte_texto, fundo):
 
 
 # ==================================================
+# TELA DE IDENTIFICAÇÃO DO JOGADOR
+# ==================================================
+
+def mostrar_tela_nome(
+    tela,
+    relogio,
+    fundo,
+    logo,
+    fonte_texto,
+    fonte_botao,
+    imagem_botao,
+    imagem_botao_confirmar,
+    som_click,
+    som_teclado
+):
+    nome = ""
+
+
+    campo_nome = pygame.Rect(
+        LARGURA // 2 - 250,
+        330,
+        500,
+        60,
+    )
+
+    botao_confirmar = pygame.Rect(
+        LARGURA // 2 + 15,
+        440,
+        190,
+        55,
+    )
+
+    botao_voltar = pygame.Rect(
+        LARGURA // 2 - 205,
+        440,
+        190,
+        55,
+    )
+
+    pygame.key.start_text_input()
+
+    executando = True
+
+    while executando:
+        mouse_pos = pygame.mouse.get_pos()
+
+        for evento in pygame.event.get():
+
+            if evento.type == pygame.QUIT:
+                pygame.key.stop_text_input()
+                return None, True
+
+
+            elif evento.type == pygame.TEXTINPUT:
+
+                if len(nome) < 16:
+                    nome += evento.text
+
+                    som_teclado.play()
+
+            elif evento.type == pygame.KEYDOWN:
+
+                if evento.key == pygame.K_BACKSPACE:
+                    nome = nome[:-1]
+
+                elif evento.key == pygame.K_RETURN and nome.strip():
+                    pygame.key.stop_text_input()
+                    return nome.strip(), False
+
+                elif evento.key == pygame.K_ESCAPE:
+                    pygame.key.stop_text_input()
+                    return None, False
+
+            elif (
+                evento.type == pygame.MOUSEBUTTONDOWN
+                and evento.button == 1
+            ):
+
+                if botao_confirmar.collidepoint(evento.pos):
+                    if nome.strip():
+                        som_click.play()
+                        pygame.key.stop_text_input()
+                        return nome.strip(), False
+
+                elif botao_voltar.collidepoint(evento.pos):
+                    som_click.play()
+                    pygame.key.stop_text_input()
+                    return None, False
+
+        # Fundo.
+        if fundo:
+            tela.blit(fundo, (0, 0))
+        else:
+            tela.fill(VERDE_MESA)
+
+        # Logo centralizada.
+        tela.blit(
+            logo,
+            logo.get_rect(
+                center=(LARGURA // 2, 220)
+            ),
+        )
+
+        # Instrução.
+        instrucao = fonte_texto.render(
+            "",
+            True,
+            DOURADO,
+        )
+
+        tela.blit(
+            instrucao,
+            instrucao.get_rect(
+                center=(LARGURA // 2, 285)
+            ),
+        )
+
+        # Campo de nome com fundo preto transparente.
+        campo_transparente = pygame.Surface(
+            (campo_nome.width, campo_nome.height),
+            pygame.SRCALPHA
+        )
+
+        campo_transparente.fill((0, 0, 0, 150))
+
+        tela.blit(campo_transparente, campo_nome.topleft)
+
+        pygame.draw.rect(
+            tela,
+            DOURADO,
+            campo_nome,
+            2,
+        )
+
+
+        texto_nome = nome if nome else "DIGITE SEU NOME:"
+
+        cor_nome = BRANCO if nome else (150, 150, 150)
+
+        superficie_nome = fonte_botao.render(
+            texto_nome,
+            True,
+            cor_nome,
+        )
+
+        tela.blit(
+            superficie_nome,
+            superficie_nome.get_rect(
+                center=campo_nome.center
+            ),
+        )
+
+        # Botões.
+        desenhar_botao(
+            tela,
+            "CONFIRMAR",
+            botao_confirmar,
+            fonte_botao,
+            mouse_pos,
+            imagem_botao_confirmar,
+        )
+
+        desenhar_botao(
+            tela,
+            "VOLTAR",
+            botao_voltar,
+            fonte_botao,
+            mouse_pos,
+            imagem_botao,
+        )
+
+        pygame.display.flip()
+        relogio.tick(FPS)
+
+    pygame.key.stop_text_input()
+    return None, False
+
+
+# ==================================================
 # MÚSICA DO MENU
 # ==================================================
 
@@ -466,6 +501,11 @@ def carregar_sons_menu():
 
     return som_rollover, som_click
 
+def carregar_som_teclado():
+    som = pygame.mixer.Sound(str(CAMINHO_SOM_TECLADO))
+    som.set_volume(0.15)
+    return som
+
 
 # ==================================================
 # MENU PRINCIPAL
@@ -474,6 +514,7 @@ def carregar_sons_menu():
 def iniciar_jogo():
     pygame.init()
     iniciar_musica_menu()
+    som_teclado = carregar_som_teclado()
     som_rollover, som_click = carregar_sons_menu()
 
     tela = pygame.display.set_mode((LARGURA, ALTURA))
@@ -487,9 +528,10 @@ def iniciar_jogo():
 
     # Carregar imagens.
     logo = carregar_logo()
-    fundo_menu = carregar_fundo()
+    fundo_menu = carregar_fundo_menu()
+    fundo_identificacao = carregar_fundo_identificacao()
     imagem_botao = carregar_imagem_botao()
-    quadros_carregamento = carregar_gif_carregamento()
+    imagem_botao_confirmar = carregar_imagem_botao_confirmar()
 
     # Posições dos botões.
     botao_jogar = pygame.Rect(
@@ -511,6 +553,8 @@ def iniciar_jogo():
     tela_atual = "menu"
     executando = True
     mouse_sobre_botao = None
+
+    nome_jogador = None
 
     while executando:
         mouse_pos = pygame.mouse.get_pos()
@@ -558,22 +602,62 @@ def iniciar_jogo():
 
                     if botao_jogar.collidepoint(evento.pos):
 
-                        # Exibir a transição antes da partida.
-                        transicao_concluida = mostrar_transicao(
+                        # Solicita o nome somente na primeira vez.
+                        if nome_jogador is None:
+
+                            nome_escolhido, fechar_jogo = mostrar_tela_nome(
+                                tela,
+                                relogio,
+                                fundo_identificacao,
+                                logo,
+
+                                fonte_texto,
+                                fonte_botao,
+                                imagem_botao,
+                                imagem_botao_confirmar,
+                                som_click,
+                                som_teclado
+                            )
+
+                            if fechar_jogo:
+                                executando = False
+                                continue
+
+                            # Se voltar, retorna ao menu sem iniciar a partida.
+                            if nome_escolhido is None:
+                                continue
+
+                            nome_jogador = nome_escolhido
+
+                        transicao_concluida = mostrar_fade_transicao(
                             tela,
-                            relogio,
-                            quadros_carregamento,
-                            fonte_titulo
+                            relogio
                         )
 
                         if not transicao_concluida:
                             executando = False
                             continue
 
-                        # A música do menu termina após a transição.
                         parar_musica_menu()
 
-                        # Agora a partida começa normalmente.
+                        resultado = iniciar_partida(
+                            tela,
+                            relogio,
+                            nome_jogador
+                        )
+
+                        if resultado == "sair":
+                            executando = False
+                            break
+                        else:
+                            iniciar_musica_menu()
+
+                        if not transicao_concluida:
+                            executando = False
+                            continue
+
+                        parar_musica_menu()
+
                         resultado = iniciar_partida(tela, relogio)
 
                         if resultado == "sair":
