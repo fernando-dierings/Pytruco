@@ -471,15 +471,11 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
     musica_vitoria_tocada = False
     carta_jogador = None
     carta_computador = None
-    computador_ja_comecou = False
-    carta_jogador_pendente = None
     carta_computador_pendente = None
     botao_hover_anterior = None
     botao_confirmacao_hover_anterior = None
     botao_confirmacao_hover_atual = None
     carta_hover_anterior = None
-    carta_jogador_pendente = None
-    carta_computador_pendente = None
     truco_aceito_jogador = False
 
     tempo_jogada = 0
@@ -943,13 +939,13 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                     or evento.button != 1
             ):
                 continue
-                continue
+
 
             # Tela final: clique inicia nova partida.
             if encerrada:
                 parar_falas()
 
-                partida = Partida()
+                partida = Partida(nome_jogador.upper())
                 truco_aceito_jogador = False
 
                 musica_vitoria.stop()
