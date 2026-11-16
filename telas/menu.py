@@ -13,6 +13,7 @@ from settings import (
     CAMINHO_LOGO,
     CAMINHO_FUNDO_MENU,
     CAMINHO_FUNDO_PARTIDA,
+    CAMINHO_FUNDO_PARTIDA1,
     CAMINHO_BOTAO,
     CAMINHO_BOTAO1,
     CAMINHO_BOTAO_CONFIRMAR,
@@ -80,15 +81,32 @@ def carregar_fundo_score():
     )
 
 def carregar_fundo_identificacao():
-    if not CAMINHO_FUNDO_PARTIDA.exists():
+    if not CAMINHO_FUNDO_PARTIDA1.exists():
         print(
             f"Fundo de identificação não encontrado: "
-            f"{CAMINHO_FUNDO_PARTIDA}"
+            f"{CAMINHO_FUNDO_PARTIDA1}"
         )
         return None
 
     imagem = pygame.image.load(
-        str(CAMINHO_FUNDO_PARTIDA)
+        str(CAMINHO_FUNDO_PARTIDA1)
+    ).convert()
+
+    return pygame.transform.scale(
+        imagem,
+        (LARGURA, ALTURA)
+    )
+
+def carregar_fundo_regras():
+    if not CAMINHO_FUNDO_PARTIDA1.exists():
+        print(
+            f"Fundo das regras não encontrado: "
+            f"{CAMINHO_FUNDO_PARTIDA1}"
+        )
+        return None
+
+    imagem = pygame.image.load(
+        str(CAMINHO_FUNDO_PARTIDA1)
     ).convert()
 
     return pygame.transform.scale(
@@ -700,6 +718,7 @@ def iniciar_jogo():
     fundo_menu = carregar_fundo_menu()
     fundo_score = carregar_fundo_score()
     fundo_identificacao = carregar_fundo_identificacao()
+    fundo_regras = carregar_fundo_regras()
     imagem_botao = carregar_imagem_botao()
     imagem_botao1 = carregar_imagem_botao1()
     imagem_botao_confirmar = carregar_imagem_botao_confirmar()
@@ -933,7 +952,7 @@ def iniciar_jogo():
                 tela,
                 fonte_titulo,
                 fonte_texto,
-                fundo_menu,
+                fundo_regras,
             )
 
         elif tela_atual == "creditos":
