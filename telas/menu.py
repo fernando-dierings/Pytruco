@@ -13,6 +13,7 @@ from settings import (
     CAMINHO_LOGO,
     CAMINHO_FUNDO_MENU,
     CAMINHO_FUNDO_PARTIDA,
+    CAMINHO_FUNDO_PARTIDA6,
     CAMINHO_FUNDO_PARTIDA1,
     CAMINHO_BOTAO,
     CAMINHO_BOTAO1,
@@ -98,15 +99,15 @@ def carregar_fundo_identificacao():
     )
 
 def carregar_fundo_regras():
-    if not CAMINHO_FUNDO_PARTIDA1.exists():
+    if not CAMINHO_FUNDO_PARTIDA6.exists():
         print(
             f"Fundo das regras não encontrado: "
-            f"{CAMINHO_FUNDO_PARTIDA1}"
+            f"{CAMINHO_FUNDO_PARTIDA6}"
         )
         return None
 
     imagem = pygame.image.load(
-        str(CAMINHO_FUNDO_PARTIDA1)
+        str(CAMINHO_FUNDO_PARTIDA6)
     ).convert()
 
     return pygame.transform.scale(
@@ -224,56 +225,185 @@ def desenhar_botao(
 # TELA DE REGRAS
 # ==================================================
 
+def desenhar_texto_justificado(
+        tela, texto, fonte, cor, area, espacamento_linhas=20
+):
+
+    paragrafos = texto.split("\n\n")
+    y = area.y
+
+    for paragrafo in paragrafos:
+
+        palavras = paragrafo.split()
+        linhas = []
+        linha_atual = []
+
+        for palavra in palavras:
+
+            teste = linha_atual + [palavra]
+            largura = fonte.size(" ".join(teste))[0]
+
+            if largura <= area.width:
+                linha_atual.append(palavra)
+            else:
+                if linha_atual:
+                    linhas.append(linha_atual)
+
+                linha_atual = [palavra]
+
+        if linha_atual:
+            linhas.append(linha_atual)
+
+        for indice, linha in enumerate(linhas):
+
+            largura_palavras = sum(
+                fonte.size(palavra)[0]
+                for palavra in linha
+            )
+
+            if indice < len(linhas) - 1 and len(linha) > 1:
+                espaco = (
+                    area.width - largura_palavras
+                ) / (len(linha) - 1)
+            else:
+                espaco = fonte.size(" ")[0]
+
+            x = area.x
+
+            for palavra in linha:
+
+                imagem = fonte.render(
+                    palavra,
+                    True,
+                    cor
+                )
+
+                tela.blit(imagem, (int(x), y))
+                x += fonte.size(palavra)[0] + espaco
+
+            y += espacamento_linhas
+
+        y += espacamento_linhas
+
+
 def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
+
     if fundo:
         tela.blit(fundo, (0, 0))
     else:
         tela.fill(VERDE_MESA)
 
-    painel = pygame.Surface((550, 470), pygame.SRCALPHA)
-    painel.fill((15, 30, 18, 150))
 
-    tela.blit(
-        painel,
-        painel.get_rect(
-            center=(LARGURA // 2, ALTURA // 2)
-        ),
-    )
 
+    # Título principal.
     titulo = fonte_titulo.render(
         "COMO JOGAR",
         True,
-        DOURADO,
+        DOURADO
     )
 
     tela.blit(
         titulo,
-        titulo.get_rect(center=(LARGURA // 2, 180)),
+        titulo.get_rect(center=(LARGURA // 2, 110))
     )
 
-    instrucoes = [
-        "Receba três cartas.",
-        "Clique em uma carta para jogar.",
-        "O computador será seu adversário.",
-        "Cada rodada pode valer um ponto,",
-        "O primeiro a chegar a 12 pontos vence.",
-        "",
-        "Pressione ESC para voltar ao menu.",
+    # Títulos das duas colunas.
+    titulo_instrucoes = fonte_texto.render(
+        "REGRAS BASICAS",
+        True,
+        DOURADO
+    )
+
+    titulo_hierarquia = fonte_texto.render(
+        "HIERARQUIA DAS CARTAS",
+        True,
+        DOURADO
+    )
+
+    tela.blit(titulo_instrucoes, (110, 190))
+    tela.blit(titulo_hierarquia, (620, 190))
+
+    # Instruções básicas em texto corrido.
+
+    texto_regras = (
+        "O objetivo do PYTRUCO é ser o primeiro a "
+        "alcançar 12 pontos. Para isso, você enfrentará "
+        "o computador em uma disputa de cartas que exige "
+        "estratégia e boas escolhas.\n\n"
+
+        "Cada jogador recebe três cartas por mão. Em "
+        "cada rodada, ambos escolhem uma carta. A carta "
+        "mais forte vence, seguindo a hierarquia ao lado.\n\n"
+
+        "Uma mão pode ter até três rodadas. O vencedor "
+        "das disputas conquista os pontos da mão.\n\n"
+
+        "Você também pode pedir TRUCO para aumentar "
+        "o valor da mão. O adversário poderá aceitar "
+        "a aposta ou correr. Quanto maior a "
+        "aposta aceita, maior será a pontuação em jogo."
+    )
+
+    area_texto = pygame.Rect(
+        100,
+        230,
+        490,
+        350
+    )
+
+    desenhar_texto_justificado(
+        tela,
+        texto_regras,
+        fonte_texto,
+        BRANCO,
+        area_texto,
+        18
+    )
+
+    # Hierarquia das cartas.
+    hierarquia = [
+        (14, "1 de Espadas"),
+        (13, "1 de Bastos"),
+        (12, "7 de Espadas"),
+        (11, "7 de Ouros"),
+        (10, "Todos os 3"),
+        (9, "Todos os 2"),
+        (8, "1 de Copas e Ouros"),
+        (7, "Todos os Reis (12)"),
+        (6, "Todos os Valetes (11)"),
+        (5, "Todos os 10"),
+        (4, "7 de Copas e Bastos"),
+        (3, "Todos os 6"),
+        (2, "Todos os 5"),
+        (1, "Todos os 4"),
     ]
 
-    for indice, texto in enumerate(instrucoes):
+    for indice, (forca, descricao) in enumerate(hierarquia):
+
+        texto = f"{forca:02d} - {descricao}"
+
         linha = fonte_texto.render(
             texto,
             True,
-            BRANCO,
+            BRANCO
         )
 
         tela.blit(
             linha,
-            linha.get_rect(
-                center=(LARGURA // 2, 260 + indice * 38)
-            ),
+            (620, 225 + indice * 26)
         )
+
+    # Instrução para voltar.
+    voltar = fonte_texto.render(
+        "Pressione ESC para voltar ao menu.",
+        True,
+        DOURADO
+    )
+
+    tela.blit(
+        voltar,
+        voltar.get_rect(center=(LARGURA // 2, 676))
+    )
 
 
 # ==================================================
