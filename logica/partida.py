@@ -24,6 +24,7 @@ class Partida:
 
         self.pontos_jogador = 0
         self.pontos_computador = 0
+        self.score = 0
 
         self.valor_mao = 1
         self.truco_pedido = False
@@ -72,6 +73,24 @@ class Partida:
         else:
             self.proximo_a_comecar_mao = "jogador"
 
+    def atualizar_score(self, vencedor, valor_mao):
+
+        if vencedor == "jogador":
+
+            if valor_mao == 1:
+                self.score += 150
+
+            elif valor_mao == 2:
+                self.score += 300
+
+        elif vencedor == "computador":
+
+            if valor_mao == 1:
+                self.score -= 100
+
+            elif valor_mao == 2:
+                self.score -= 200
+
     def pedir_truco(self):
         if self.mao_encerrada:
             return "A mão já terminou."
@@ -98,6 +117,7 @@ class Partida:
             }
 
         self.pontos_jogador += self.valor_mao
+        self.atualizar_score("jogador", self.valor_mao)
         self.mao_encerrada = True
 
         return {
@@ -116,6 +136,7 @@ class Partida:
             return "Você aceitou! A mão agora vale 2 pontos."
 
         self.pontos_computador += self.valor_mao
+        self.atualizar_score("computador", self.valor_mao)
         self.mao_encerrada = True
 
         return "Você correu! O computador ganhou os pontos da mão."
@@ -283,10 +304,12 @@ class Partida:
 
             if vencedor_mao == "jogador":
                 self.pontos_jogador += self.valor_mao
+                self.atualizar_score("jogador", self.valor_mao)
                 self.mao_encerrada = True
 
             elif vencedor_mao == "computador":
                 self.pontos_computador += self.valor_mao
+                self.atualizar_score("computador", self.valor_mao)
                 self.mao_encerrada = True
 
             elif vencedor_mao == "empate":

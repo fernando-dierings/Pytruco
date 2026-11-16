@@ -42,6 +42,8 @@ from settings import (
 )
 
 from logica.partida import Partida
+from datetime import datetime
+from logica.score import registrar_vitoria, registrar_sessao
 from utils.recursos import desenhar_texto_contornado
 
 # ==================================================
@@ -388,7 +390,11 @@ def desenhar_texto_vencedor(
 
 def iniciar_partida(tela, relogio, nome_jogador="Você"):
     partida = Partida(nome_jogador.upper())
-    partida.pontos_computador = 12
+
+    score_sessao = 0
+    quantidade_vitorias_sessao = 0
+    data_inicio_sessao = datetime.now().strftime("%d/%m/%Y %H:%M")
+
 
     if CAMINHO_MUSICA_PARTIDA.exists():
         pygame.mixer.music.load(str(CAMINHO_MUSICA_PARTIDA))
@@ -632,6 +638,14 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                         pygame.mixer.music.stop()
                         musica_vitoria.stop()
                         musica_derrota.stop()
+
+                        registrar_sessao(
+                            nome_jogador.upper(),
+                            score_sessao,
+                            quantidade_vitorias_sessao,
+                            data_inicio_sessao
+                        )
+
                         return "menu"
 
                     # NÃO: continua a partida.
@@ -894,6 +908,15 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
             jogador_venceu = (
                     partida.pontos_jogador >= PONTOS_PARA_VENCER
             )
+
+            if jogador_venceu:
+                registrar_vitoria(
+                    nome_jogador.upper(),
+                    partida.score
+                )
+
+            score_sessao += partida.score
+            quantidade_vitorias_sessao += 1
 
             if jogador_venceu and not musica_vitoria_tocada:
                 pygame.mixer.music.stop()

@@ -14,13 +14,22 @@ from settings import (
     CAMINHO_FUNDO_MENU,
     CAMINHO_FUNDO_PARTIDA,
     CAMINHO_BOTAO,
+    CAMINHO_BOTAO1,
     CAMINHO_BOTAO_CONFIRMAR,
     CAMINHO_MUSICA_MENU,
     CAMINHO_SOM_ROLLOVER,
     CAMINHO_SOM_CLICK,
-    CAMINHO_SOM_TECLADO
+    CAMINHO_SOM_TECLADO,
+    CAMINHO_TELA_SCORE
 )
+
 from telas.partida import iniciar_partida
+
+from logica.score import (
+    inicializar_banco,
+    buscar_melhores_partidas,
+    buscar_melhores_sessoes
+)
 
 
 # ==================================================
@@ -49,6 +58,20 @@ def carregar_fundo_menu():
 
     imagem = pygame.image.load(
         str(CAMINHO_FUNDO_MENU)
+    ).convert()
+
+    return pygame.transform.scale(
+        imagem,
+        (LARGURA, ALTURA)
+    )
+
+def carregar_fundo_score():
+    if not CAMINHO_TELA_SCORE.exists():
+        print(f"Fundo do SCORE não encontrado: {CAMINHO_TELA_SCORE}")
+        return None
+
+    imagem = pygame.image.load(
+        str(CAMINHO_TELA_SCORE)
     ).convert()
 
     return pygame.transform.scale(
@@ -117,6 +140,15 @@ def carregar_imagem_botao():
 
     return pygame.image.load(
         str(CAMINHO_BOTAO)
+    ).convert_alpha()
+
+def carregar_imagem_botao1():
+    if not CAMINHO_BOTAO1.exists():
+        print(f"Botão 1 não encontrado: {CAMINHO_BOTAO1}")
+        return None
+
+    return pygame.image.load(
+        str(CAMINHO_BOTAO1)
     ).convert_alpha()
 
 def carregar_imagem_botao_confirmar():
@@ -284,6 +316,141 @@ def mostrar_creditos(tela, fonte_titulo, fonte_texto, fundo):
                 center=(LARGURA // 2, 245 + indice * 34)
             ),
         )
+
+
+def mostrar_score(tela, fonte_titulo, fonte_texto, fundo):
+
+    if fundo:
+        tela.blit(fundo, (0, 0))
+    else:
+        tela.fill(VERDE_MESA)
+
+    partidas = buscar_melhores_partidas()
+    sessoes = buscar_melhores_sessoes()
+
+
+
+    # Título principal.
+    titulo = fonte_titulo.render("SCORE", True, DOURADO)
+
+    tela.blit(
+        titulo,
+        titulo.get_rect(center=(LARGURA // 2, 65))
+    )
+
+    # Títulos dos rankings.
+    titulo_partidas = fonte_texto.render(
+        "TOP 10 PARTIDAS",
+        True,
+        DOURADO
+    )
+
+    titulo_sessoes = fonte_texto.render(
+        "TOP 10 SESSOES",
+        True,
+        DOURADO
+    )
+
+    tela.blit(
+        titulo_partidas,
+        titulo_partidas.get_rect(center=(300, 145))
+    )
+
+    tela.blit(
+        titulo_sessoes,
+        titulo_sessoes.get_rect(center=(700, 145))
+    )
+
+    # Ranking de partidas individuais.
+    if not partidas:
+        texto = fonte_texto.render(
+            "NENHUMA VITORIA REGISTRADA",
+            True,
+            BRANCO
+        )
+        tela.blit(texto, (65, 200))
+
+    else:
+        for indice, (nome, score, data) in enumerate(partidas):
+
+            y = 190 + indice * 40
+
+            linha = f"{indice + 1}. {nome[:12]}  {score} PTS"
+
+            texto = fonte_texto.render(
+                linha,
+                True,
+                BRANCO
+            )
+
+            tela.blit(
+                texto,
+                texto.get_rect(center=(300, y + 8))
+            )
+
+            data_texto = fonte_texto.render(
+                data,
+                True,
+                (190, 190, 190)
+            )
+
+            tela.blit(
+                data_texto,
+                data_texto.get_rect(center=(300, y + 25))
+            )
+
+    # Ranking de sessões.
+    if not sessoes:
+        texto = fonte_texto.render(
+            "NENHUMA SESSAO REGISTRADA",
+            True,
+            BRANCO
+        )
+        tela.blit(texto, (550, 200))
+
+    else:
+        for indice, (
+            nome,
+            score_total,
+            quantidade_vitorias,
+            media_score,
+            data_inicio,
+            data_fim
+        ) in enumerate(sessoes):
+
+            y = 190 + indice * 40
+
+            linha = (
+                f"{indice + 1}. {nome[:10]} "
+                f"{score_total} PTS"
+            )
+
+            texto = fonte_texto.render(
+                linha,
+                True,
+                BRANCO
+            )
+
+            tela.blit(
+                texto,
+                texto.get_rect(center=(700, y + 8))
+            )
+
+            detalhes = (
+                f"{quantidade_vitorias} VIT. "
+                f"MEDIA: {media_score:.0f}"
+            )
+
+            texto_detalhes = fonte_texto.render(
+                detalhes,
+                True,
+                (190, 190, 190)
+            )
+
+            tela.blit(
+                texto_detalhes,
+                texto_detalhes.get_rect(center=(700, y + 25))
+            )
 
 
 # ==================================================
@@ -512,7 +679,9 @@ def carregar_som_teclado():
 # ==================================================
 
 def iniciar_jogo():
+    inicializar_banco()
     pygame.init()
+
     iniciar_musica_menu()
     som_teclado = carregar_som_teclado()
     som_rollover, som_click = carregar_sons_menu()
@@ -529,25 +698,35 @@ def iniciar_jogo():
     # Carregar imagens.
     logo = carregar_logo()
     fundo_menu = carregar_fundo_menu()
+    fundo_score = carregar_fundo_score()
     fundo_identificacao = carregar_fundo_identificacao()
     imagem_botao = carregar_imagem_botao()
+    imagem_botao1 = carregar_imagem_botao1()
     imagem_botao_confirmar = carregar_imagem_botao_confirmar()
 
     # Posições dos botões.
     botao_jogar = pygame.Rect(
-        LARGURA // 2 - 150, 300, 300, 55
+        LARGURA // 2 - 150, 300, 300, 50
     )
 
     botao_regras = pygame.Rect(
-        LARGURA // 2 - 150, 370, 300, 55
+        LARGURA // 2 - 150, 360, 300, 50
+    )
+
+    botao_score = pygame.Rect(
+        LARGURA // 2 - 150, 420, 300, 50
     )
 
     botao_creditos = pygame.Rect(
-        LARGURA // 2 - 150, 440, 300, 55
+        LARGURA // 2 - 150, 480, 300, 50
     )
 
     botao_sair = pygame.Rect(
-        LARGURA // 2 - 150, 510, 300, 55
+        LARGURA // 2 - 150, 540, 300, 50
+    )
+
+    botao_voltar_score = pygame.Rect(
+        LARGURA // 2 - 110, 630, 220, 50
     )
 
     tela_atual = "menu"
@@ -569,8 +748,14 @@ def iniciar_jogo():
                 botao_atual = "regras"
             elif botao_creditos.collidepoint(mouse_pos):
                 botao_atual = "creditos"
+            elif botao_score.collidepoint(mouse_pos):
+                botao_atual = "score"
             elif botao_sair.collidepoint(mouse_pos):
                 botao_atual = "sair"
+
+        elif tela_atual == "score":
+            if botao_voltar_score.collidepoint(mouse_pos):
+                botao_atual = "voltar_score"
 
         if botao_atual != mouse_sobre_botao:
             if botao_atual is not None:
@@ -597,6 +782,7 @@ def iniciar_jogo():
                             or botao_regras.collidepoint(evento.pos)
                             or botao_sair.collidepoint(evento.pos)
                             or botao_creditos.collidepoint(evento.pos)
+                            or botao_score.collidepoint(evento.pos)
                     ):
                         som_click.play()
 
@@ -610,7 +796,6 @@ def iniciar_jogo():
                                 relogio,
                                 fundo_identificacao,
                                 logo,
-
                                 fonte_texto,
                                 fonte_botao,
                                 imagem_botao,
@@ -623,7 +808,6 @@ def iniciar_jogo():
                                 executando = False
                                 continue
 
-                            # Se voltar, retorna ao menu sem iniciar a partida.
                             if nome_escolhido is None:
                                 continue
 
@@ -646,27 +830,36 @@ def iniciar_jogo():
                             nome_jogador
                         )
 
-
                         if resultado == "sair":
                             executando = False
                             break
                         else:
                             iniciar_musica_menu()
 
-
                     elif botao_regras.collidepoint(evento.pos):
                         tela_atual = "regras"
+
                     elif botao_creditos.collidepoint(evento.pos):
                         tela_atual = "creditos"
+
+                    elif botao_score.collidepoint(evento.pos):
+                        tela_atual = "score"
+
                     elif botao_sair.collidepoint(evento.pos):
                         executando = False
+
+                elif tela_atual == "score":
+
+                    if botao_voltar_score.collidepoint(evento.pos):
+                        som_click.play()
+                        tela_atual = "menu"
 
 
             elif evento.type == pygame.KEYDOWN:
 
                 if (
                         evento.key == pygame.K_ESCAPE
-                        and tela_atual in ("regras", "creditos")
+                        and tela_atual in ("regras", "creditos", "score")
                 ):
                     tela_atual = "menu"
 
@@ -722,6 +915,11 @@ def iniciar_jogo():
             )
 
             desenhar_botao(
+                tela, "SCORE", botao_score,
+                fonte_botao, mouse_pos, imagem_botao
+            )
+
+            desenhar_botao(
                 tela, "EXIT", botao_sair,
                 fonte_botao, mouse_pos, imagem_botao
             )
@@ -744,6 +942,25 @@ def iniciar_jogo():
                 fonte_titulo,
                 fonte_texto,
                 fundo_menu,
+            )
+
+
+        elif tela_atual == "score":
+
+            mostrar_score(
+                tela,
+                fonte_titulo,
+                fonte_texto,
+                fundo_score,
+            )
+
+            desenhar_botao(
+                tela,
+                "VOLTAR",
+                botao_voltar_score,
+                fonte_botao,
+                mouse_pos,
+                imagem_botao1,
             )
 
         pygame.display.flip()
