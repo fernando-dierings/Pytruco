@@ -2,13 +2,17 @@
 # Configurações gerais do jogo
 from pathlib import Path
 import pygame
+import sys
 
 
 # ==================================================
 # CAMINHOS DO PROJETO
 # ==================================================
 
-RAIZ_PROJETO = Path(__file__).resolve().parent
+if getattr(sys, "frozen", False):
+    RAIZ_PROJETO = Path(sys.executable).resolve().parent
+else:
+    RAIZ_PROJETO = Path(__file__).resolve().parent
 
 PASTA_ASSETS = RAIZ_PROJETO / "assets"
 PASTA_IMAGENS = PASTA_ASSETS / "imagens"
@@ -60,15 +64,15 @@ SOM_TRUCO_NOTIFICACAO = PASTA_SONS / "truco_notificacao.mp3"
 CAMINHO_SOM_ROLLOVER = PASTA_SONS / "rollover1.mp3"
 CAMINHO_SOM_CLICK = PASTA_SONS / "click1.mp3"
 
-CAMINHO_VOZ_DERROTA = "assets/sons/voz_derrota.mp3"
-CAMINHO_VOZ_DERROTA_1 = "assets/sons/voz_derrota1.mp3"
-CAMINHO_VOZ_DERROTA_2 = "assets/sons/voz_derrota2.mp3"
+CAMINHO_VOZ_DERROTA = PASTA_SONS / "voz_derrota.mp3"
+CAMINHO_VOZ_DERROTA_1 = PASTA_SONS / "voz_derrota1.mp3"
+CAMINHO_VOZ_DERROTA_2 = PASTA_SONS / "voz_derrota2.mp3"
 
-CAMINHO_VOZ_VITORIA = "assets/sons/voz_vitoria.mp3"
-CAMINHO_VOZ_VITORIA_1 = "assets/sons/voz_vitoria1.mp3"
-CAMINHO_VOZ_VITORIA_2 = "assets/sons/voz_vitoria2.mp3"
+CAMINHO_VOZ_VITORIA = PASTA_SONS / "voz_vitoria.mp3"
+CAMINHO_VOZ_VITORIA_1 = PASTA_SONS / "voz_vitoria1.mp3"
+CAMINHO_VOZ_VITORIA_2 = PASTA_SONS / "voz_vitoria2.mp3"
 
-CAMINHO_VOZ_CARREGAMENTO = "assets/sons/voz_carregamento.mp3"
+CAMINHO_VOZ_CARREGAMENTO = PASTA_SONS / "voz_carregamento.mp3"
 
 # ==================================================
 # CONFIGURAÇÕES DA JANELA
