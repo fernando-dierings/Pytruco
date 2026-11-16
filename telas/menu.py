@@ -1,7 +1,12 @@
 from pathlib import Path
 import pygame
+import numpy as np
+import sounddevice as sd
 
 from PIL import Image
+
+from pedalboard import Pedalboard, Reverb
+from pedalboard.io import AudioFile
 
 from settings import (
     LARGURA,
@@ -37,6 +42,102 @@ from logica.score import (
     buscar_melhores_sessoes
 )
 
+# ==================================================
+# CONFIGURAÇÃO DO REVERB
+# ==================================================
+
+efeito_reverb = Pedalboard([
+    Reverb(
+        room_size=0.90,
+        damping=0.35,
+        wet_level=0.60,
+        dry_level=0.40,
+        width=1.0,
+    )
+])
+
+# ==================================================
+# REPRODUÇÃO DA MÚSICA COM REVERB
+# ==================================================
+
+_arquivo_creditos = None
+_stream_creditos = None
+
+
+def iniciar_musica_creditos_reverb():
+
+    global _arquivo_creditos, _stream_creditos
+
+    if not CAMINHO_MUSICA_MENU.exists():
+        print(f"Música não encontrada: {CAMINHO_MUSICA_MENU}")
+        return
+
+    _arquivo_creditos = AudioFile(str(CAMINHO_MUSICA_MENU))
+    _arquivo_creditos.seek(
+        int(posicao_musica_menu * _arquivo_creditos.samplerate)
+    )
+
+    taxa_amostragem = _arquivo_creditos.samplerate
+    canais = _arquivo_creditos.num_channels
+
+    efeito_reverb.reset()
+
+    def reproduzir_audio(outdata, frames, tempo, status):
+
+        blocos = []
+        restantes = frames
+
+        while restantes > 0:
+
+            bloco = _arquivo_creditos.read(restantes)
+
+            if bloco.shape[1] == 0:
+                _arquivo_creditos.seek(0)
+                continue
+
+            blocos.append(bloco)
+            restantes -= bloco.shape[1]
+
+        audio = np.concatenate(blocos, axis=1)
+
+        audio_processado = efeito_reverb(
+            audio,
+            taxa_amostragem,
+            reset=False
+        )
+
+        audio_processado *= 0.10
+
+        outdata[:] = audio_processado.T
+
+    _stream_creditos = sd.OutputStream(
+        samplerate=taxa_amostragem,
+        channels=canais,
+        dtype="float32",
+        blocksize=1024,
+        callback=reproduzir_audio
+    )
+
+    _stream_creditos.start()
+
+
+def parar_musica_creditos_reverb():
+
+    global _arquivo_creditos, _stream_creditos, posicao_musica_menu
+
+    if _stream_creditos is not None:
+        _stream_creditos.stop()
+        _stream_creditos.close()
+        _stream_creditos = None
+
+    if _arquivo_creditos is not None:
+        posicao_musica_menu = (
+                _arquivo_creditos.tell() / _arquivo_creditos.samplerate
+        )
+
+    if _arquivo_creditos is not None:
+        _arquivo_creditos.close()
+        _arquivo_creditos = None
 
 # ==================================================
 # CARREGAMENTO DAS IMAGENS
@@ -998,18 +1099,27 @@ def mostrar_tela_nome(
 # ==================================================
 # MÚSICA DO MENU
 # ==================================================
+posicao_musica_menu = 0
 
-def iniciar_musica_menu():
+
+def iniciar_musica_menu(posicao=0):
     if not CAMINHO_MUSICA_MENU.exists():
         print(f"Música não encontrada: {CAMINHO_MUSICA_MENU}")
         return
 
     pygame.mixer.music.load(str(CAMINHO_MUSICA_MENU))
     pygame.mixer.music.set_volume(0.10)
-    pygame.mixer.music.play(-1)
+    pygame.mixer.music.play(-1, start=posicao)
 
 
 def parar_musica_menu():
+    global posicao_musica_menu
+
+    posicao_atual = pygame.mixer.music.get_pos()
+
+    if posicao_atual >= 0:
+        posicao_musica_menu += posicao_atual / 1000
+
     pygame.mixer.music.stop()
 
 
@@ -1223,7 +1333,12 @@ def iniciar_jogo():
                         tela_atual = "regras"
 
 
+
                     elif botao_creditos.collidepoint(evento.pos):
+
+                        parar_musica_menu()
+
+                        iniciar_musica_creditos_reverb()
 
                         imagem_transicao_origem = tela.copy()
 
@@ -1263,15 +1378,27 @@ def iniciar_jogo():
                         tela_atual = "menu"
 
 
+
             elif evento.type == pygame.KEYDOWN:
 
                 if (
+
                         evento.key == pygame.K_ESCAPE
+
                         and tela_atual in ("regras", "creditos", "score")
+
                 ):
+
+                    if tela_atual == "creditos":
+                        parar_musica_creditos_reverb()
+                        iniciar_musica_menu(posicao_musica_menu)
+
                     imagem_transicao_origem = tela.copy()
+
                     inicio_transicao = pygame.time.get_ticks()
+
                     direcao_transicao = -1
+
                     tela_atual = "menu"
 
         # ------------------------------------------
@@ -1417,6 +1544,7 @@ def iniciar_jogo():
         pygame.display.flip()
         relogio.tick(FPS)
 
+    parar_musica_creditos_reverb()
     pygame.mixer.music.stop()
     pygame.quit()
 
