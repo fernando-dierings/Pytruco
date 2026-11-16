@@ -646,24 +646,13 @@ def iniciar_jogo():
                             nome_jogador
                         )
 
+
                         if resultado == "sair":
                             executando = False
                             break
                         else:
                             iniciar_musica_menu()
 
-                        if not transicao_concluida:
-                            executando = False
-                            continue
-
-                        parar_musica_menu()
-
-                        resultado = iniciar_partida(tela, relogio)
-
-                        if resultado == "sair":
-                            executando = False
-                        else:
-                            iniciar_musica_menu()
 
                     elif botao_regras.collidepoint(evento.pos):
                         tela_atual = "regras"

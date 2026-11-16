@@ -12,7 +12,9 @@ from settings import (
     DOURADO,
     PONTOS_PARA_VENCER,
     CAMINHO_BOTAO_AVISO,
+    CAMINHO_BOTAO,
     CAMINHO_BOTAO1,
+    CAMINHO_BOTAO_CONFIRMAR,
     CAMINHO_BOTAO_CONFIRMAR1,
     CAMINHO_FONTE,
     CAMINHO_FUNDO_PARTIDA,
@@ -111,6 +113,110 @@ def carregar_imagem_botao(caminho):
     return pygame.transform.smoothscale(
         imagem,
         (200, 45)
+    )
+
+def desenhar_confirmacao_saida(
+    tela,
+    fonte_media,
+    fonte_pequena,
+    imagem_botao_sim,
+    imagem_botao_nao,
+    botao_sim,
+    botao_nao,
+    botao_confirmacao_hover_atual=None
+):
+
+    # Escurece a tela ao fundo.
+    camada_escura = pygame.Surface(
+        (LARGURA, ALTURA),
+        pygame.SRCALPHA
+    )
+    camada_escura.fill((0, 0, 0, 180))
+    tela.blit(camada_escura, (0, 0))
+
+    # Caixa da confirmação.
+    caixa = pygame.Rect(130, 220, 740, 270)
+
+    pygame.draw.rect(
+        tela,
+        PRETO,
+        caixa
+    )
+
+    pygame.draw.rect(
+        tela,
+        DOURADO,
+        caixa,
+        5
+    )
+
+    # Pergunta.
+    texto1 = fonte_media.render(
+        "DESEJA MESMO",
+        True,
+        DOURADO
+    )
+
+    texto2 = fonte_media.render(
+        "VOLTAR AO MENU?",
+        True,
+        DOURADO
+    )
+
+    tela.blit(
+        texto1,
+        texto1.get_rect(
+            center=(LARGURA // 2, 285)
+        )
+    )
+
+    tela.blit(
+        texto2,
+        texto2.get_rect(
+            center=(LARGURA // 2, 330)
+        )
+    )
+
+    # Botão SIM.
+    if imagem_botao_sim:
+        tela.blit(imagem_botao_sim, botao_sim)
+
+    cor_sim = (
+        DOURADO
+        if botao_confirmacao_hover_atual == "sim"
+        else BRANCO
+    )
+
+    texto_sim = fonte_pequena.render(
+        "SIM",
+        True,
+        cor_sim
+    )
+
+    tela.blit(
+        texto_sim,
+        texto_sim.get_rect(center=botao_sim.center)
+    )
+
+    # Botão NÃO.
+    if imagem_botao_nao:
+        tela.blit(imagem_botao_nao, botao_nao)
+
+    cor_nao = (
+        DOURADO
+        if botao_confirmacao_hover_atual == "nao"
+        else BRANCO
+    )
+
+    texto_nao = fonte_pequena.render(
+        "NÃO",
+        True,
+        cor_nao
+    )
+
+    tela.blit(
+        texto_nao,
+        texto_nao.get_rect(center=botao_nao.center)
     )
 
 def alterar_cor_botao(imagem, cor):
@@ -282,7 +388,7 @@ def desenhar_texto_vencedor(
 
 def iniciar_partida(tela, relogio, nome_jogador="Você"):
     partida = Partida(nome_jogador.upper())
-    partida.pontos_jogador = 0
+    partida.pontos_computador = 12
 
     if CAMINHO_MUSICA_PARTIDA.exists():
         pygame.mixer.music.load(str(CAMINHO_MUSICA_PARTIDA))
@@ -333,6 +439,10 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
     imagem_botao = carregar_imagem_botao(CAMINHO_BOTAO1)
     imagem_botao_confirmar = carregar_imagem_botao(CAMINHO_BOTAO_CONFIRMAR1)
 
+    # Imagens dos botões da confirmação de saída.
+    imagem_botao_nao = carregar_imagem_botao(CAMINHO_BOTAO)
+    imagem_botao_sim = carregar_imagem_botao(CAMINHO_BOTAO_CONFIRMAR)
+
     # Logo da partida
     logo_partida = pygame.image.load(
         str(CAMINHO_LOGO_PLACA)
@@ -365,6 +475,8 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
     carta_jogador_pendente = None
     carta_computador_pendente = None
     botao_hover_anterior = None
+    botao_confirmacao_hover_anterior = None
+    botao_confirmacao_hover_atual = None
     carta_hover_anterior = None
     carta_jogador_pendente = None
     carta_computador_pendente = None
@@ -440,6 +552,11 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
     encerrada = False
     jogador_venceu = False
 
+    # Controla a confirmação para voltar ao menu.
+    confirmar_saida = False
+    fundo_confirmacao = None
+    inicio_pausa = 0
+
     botao_truco = pygame.Rect(
         LARGURA - 240, ALTURA - 80, 200, 45
     )
@@ -452,11 +569,122 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
         LARGURA - 240, ALTURA - 80, 200, 45
     )
 
+    # Botões da confirmação para voltar ao menu.
+    botao_sim = pygame.Rect(
+        300, 380, 200, 45
+    )
+
+    botao_nao = pygame.Rect(
+        520, 380, 200, 45
+    )
+
     # ==================================================
     # LOOP PRINCIPAL
     # ==================================================
 
     while True:
+
+    # ------------------------------------------
+    # JANELA DE CONFIRMAÇÃO PARA VOLTAR AO MENU
+    # ------------------------------------------
+
+        if confirmar_saida:
+            pos_mouse = pygame.mouse.get_pos()
+
+            botao_confirmacao_hover_atual = None
+
+            if botao_sim.collidepoint(pos_mouse):
+                botao_confirmacao_hover_atual = "sim"
+
+            elif botao_nao.collidepoint(pos_mouse):
+                botao_confirmacao_hover_atual = "nao"
+
+            if (
+                    botao_confirmacao_hover_atual is not None
+                    and botao_confirmacao_hover_atual
+                    != botao_confirmacao_hover_anterior
+            ):
+                som_rollover.play()
+
+            botao_confirmacao_hover_anterior = (
+                botao_confirmacao_hover_atual
+            )
+
+            for evento in pygame.event.get():
+
+                if evento.type == pygame.QUIT:
+                    parar_falas()
+                    pygame.mixer.music.stop()
+                    musica_vitoria.stop()
+                    musica_derrota.stop()
+                    return "sair"
+
+                if evento.type == pygame.KEYDOWN:
+                    if evento.key == pygame.K_ESCAPE:
+                        confirmar_saida = False
+                        break
+
+                if (
+                        evento.type == pygame.MOUSEBUTTONDOWN
+                        and evento.button == 1
+                ):
+
+                    # SIM: volta ao menu.
+                    if botao_sim.collidepoint(evento.pos):
+                        som_click.play()
+                        parar_falas()
+                        pygame.mixer.music.stop()
+                        musica_vitoria.stop()
+                        musica_derrota.stop()
+                        return "menu"
+
+                    # NÃO: continua a partida.
+                    if botao_nao.collidepoint(evento.pos):
+                        som_click.play()
+                        confirmar_saida = False
+                        break
+
+            # Se a confirmação foi fechada, retoma os tempos da partida.
+            if not confirmar_saida:
+
+                tempo_pausado = pygame.time.get_ticks() - inicio_pausa
+
+                distribuicao_inicio += tempo_pausado
+                inicio_boasorte += tempo_pausado
+                tempo_jogada += tempo_pausado
+                animacao_carta_jogador_tempo += tempo_pausado
+                animacao_carta_computador_tempo += tempo_pausado
+
+                if animacao_giro_computador_inicio is not None:
+                    animacao_giro_computador_inicio += tempo_pausado
+
+                if tempo_inicio_destaque is not None:
+                    tempo_inicio_destaque += tempo_pausado
+
+                if revelacao_inicio is not None:
+                    revelacao_inicio += tempo_pausado
+
+                fundo_confirmacao = None
+
+                continue
+
+            # Mantém a imagem da partida congelada ao fundo.
+            tela.blit(fundo_confirmacao, (0, 0))
+
+            desenhar_confirmacao_saida(
+                tela,
+                fonte_media,
+                fonte_pequena,
+                imagem_botao_sim,
+                imagem_botao_nao,
+                botao_sim,
+                botao_nao,
+                botao_confirmacao_hover_atual
+            )
+
+            pygame.display.flip()
+            relogio.tick(60)
+            continue
 
         # ------------------------------------------
         # CONTROLE DA DISTRIBUIÇÃO DAS CARTAS
@@ -702,11 +930,10 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
 
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
-                    parar_falas()
-                    musica_vitoria.stop()
-                    musica_derrota.stop()
-                    pygame.mixer.music.stop()
-                    return "menu"
+                    confirmar_saida = True
+                    fundo_confirmacao = tela.copy()
+                    inicio_pausa = pygame.time.get_ticks()
+                    break
 
             if distribuicao_ativa:
                 continue
@@ -977,6 +1204,18 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                     center=(LARGURA // 2, ALTURA - 50)
                 ),
             )
+
+            if confirmar_saida:
+                desenhar_confirmacao_saida(
+                    tela,
+                    fonte_media,
+                    fonte_pequena,
+                    imagem_botao_sim,
+                    imagem_botao_nao,
+                    botao_sim,
+                    botao_nao,
+                    botao_confirmacao_hover_atual
+                )
 
             pygame.display.flip()
             relogio.tick(60)
@@ -1617,6 +1856,18 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
 
             else:
                 mostrar_boasorte = False
+
+        if confirmar_saida:
+            desenhar_confirmacao_saida(
+                tela,
+                fonte_media,
+                fonte_pequena,
+                imagem_botao_sim,
+                imagem_botao_nao,
+                botao_sim,
+                botao_nao,
+                botao_confirmacao_hover_atual
+            )
 
         pygame.display.flip()
         relogio.tick(60)
