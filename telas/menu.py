@@ -1,6 +1,8 @@
 from pathlib import Path
 import pygame
 
+from PIL import Image
+
 from settings import (
     LARGURA,
     ALTURA,
@@ -13,6 +15,8 @@ from settings import (
     CAMINHO_LOGO,
     CAMINHO_FUNDO_MENU,
     CAMINHO_FUNDO_PARTIDA,
+    CAMINHO_FUNDO_ANIMADO,
+    CAMINHO_FUNDO_PARTIDA2,
     CAMINHO_FUNDO_PARTIDA6,
     CAMINHO_FUNDO_PARTIDA1,
     CAMINHO_BOTAO,
@@ -115,6 +119,20 @@ def carregar_fundo_regras():
         (LARGURA, ALTURA)
     )
 
+def carregar_fundo_credits():
+    if not CAMINHO_FUNDO_PARTIDA2.exists():
+        print(f"Fundo do SCORE não encontrado: {CAMINHO_FUNDO_PARTIDA2}")
+        return None
+
+    imagem = pygame.image.load(
+        str(CAMINHO_FUNDO_PARTIDA2)
+    ).convert()
+
+    return pygame.transform.scale(
+        imagem,
+        (LARGURA, ALTURA)
+    )
+
 
 def mostrar_fade_transicao(tela, relogio):
     imagem_menu = tela.copy()
@@ -152,6 +170,39 @@ def mostrar_fade_transicao(tela, relogio):
     pygame.display.flip()
 
     return True
+
+
+def animar_tela_deslizante(
+        tela, relogio, imagem_origem, imagem_destino,
+        direcao=1, duracao=400
+):
+
+    inicio = pygame.time.get_ticks()
+
+    while True:
+
+        tempo = pygame.time.get_ticks() - inicio
+        progresso = min(tempo / duracao, 1)
+
+        deslocamento = int(LARGURA * progresso)
+
+        tela.blit(
+            imagem_origem,
+            (-direcao * deslocamento, 0)
+        )
+
+        tela.blit(
+            imagem_destino,
+            (direcao * (LARGURA - deslocamento), 0)
+        )
+
+        pygame.display.flip()
+        relogio.tick(FPS)
+
+        if progresso >= 1:
+            break
+
+
 def carregar_imagem_botao():
     if not CAMINHO_BOTAO.exists():
         print(f"Botão não encontrado: {CAMINHO_BOTAO}")
@@ -181,6 +232,41 @@ def carregar_imagem_botao_confirmar():
     return pygame.image.load(
         str(CAMINHO_BOTAO_CONFIRMAR)
     ).convert_alpha()
+
+
+
+def carregar_gif_creditos():
+    if not CAMINHO_FUNDO_ANIMADO.exists():
+        print(f"GIF dos créditos não encontrado: {CAMINHO_FUNDO_ANIMADO}")
+        return []
+
+    gif = Image.open(str(CAMINHO_FUNDO_ANIMADO))
+
+    quadros = []
+
+    for indice in range(gif.n_frames):
+        gif.seek(indice)
+
+        imagem = gif.convert("RGBA")
+
+        quadro = pygame.image.fromstring(
+            imagem.tobytes(),
+            imagem.size,
+            "RGBA"
+        )
+
+        quadro = pygame.transform.scale(
+            quadro,
+            (LARGURA, ALTURA)
+        )
+
+        duracao = gif.info.get("duration", 100)
+
+        quadros.append((quadro, duracao))
+
+    return quadros
+
+
 
 
 # ==================================================
@@ -297,7 +383,7 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
 
     # Título principal.
     titulo = fonte_titulo.render(
-        "COMO JOGAR",
+        "COMO JOGAR?",
         True,
         DOURADO
     )
@@ -309,7 +395,7 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
 
     # Títulos das duas colunas.
     titulo_instrucoes = fonte_texto.render(
-        "REGRAS BASICAS",
+        "REGRAS BÁSICAS",
         True,
         DOURADO
     )
@@ -410,60 +496,171 @@ def mostrar_regras(tela, fonte_titulo, fonte_texto, fundo):
 # TELA DE CRÉDITOS
 # ==================================================
 
-def mostrar_creditos(tela, fonte_titulo, fonte_texto, fundo):
-    if fundo:
-        tela.blit(fundo, (0, 0))
+
+
+def mostrar_creditos(tela, fonte_titulo, fonte_texto, fundo, quadros_gif):
+    if quadros_gif:
+
+        tempo_atual = pygame.time.get_ticks()
+
+        duracao_total = sum(
+            duracao for _, duracao in quadros_gif
+        )
+
+        tempo_gif = tempo_atual % duracao_total
+
+        tempo_acumulado = 0
+
+        for quadro, duracao in quadros_gif:
+
+            tempo_acumulado += duracao
+
+            if tempo_gif < tempo_acumulado:
+                tela.blit(quadro, (0, 0))
+                break
+
     else:
         tela.fill(VERDE_MESA)
 
-    painel = pygame.Surface((550, 470), pygame.SRCALPHA)
-    painel.fill((15, 30, 18, 150))
-
-    tela.blit(
-        painel,
-        painel.get_rect(
-            center=(LARGURA // 2, ALTURA // 2)
-        ),
+    painel = pygame.Surface(
+        (LARGURA, ALTURA),
+        pygame.SRCALPHA
     )
 
+    painel.fill((15, 30, 18, 110))
+
+    tela.blit(painel, (0, 0))
+
+
+
     titulo = fonte_titulo.render(
-        "créditos",
+        "Créditos",
         True,
         DOURADO,
     )
 
     tela.blit(
         titulo,
-        titulo.get_rect(center=(LARGURA // 2, 180)),
+        titulo.get_rect(center=(LARGURA // 2, 75)),
     )
 
-    creditos = [
-        "DESENVOLVIMENTO",
-        "Fernando Dierings",
-        "",
-        "TECNOLOGIAS",
-        "Python e Pygame",
-        "",
-        "OBRIGADO POR JOGAR!",
-        "",
-        "Pressione ESC para voltar ao menu.",
+    secoes = [
+        (
+            "SOBRE O PROJETO",
+            [
+                "O PYTRUCO é um projeto desenvolvido por",
+                "Fernando Dierings, como parte dos estudos",
+                "em Programação Aplicada. Foi idealizado",
+                "para unir o aprendizado do desenvolvimento",
+                "de software à tradição gaúcha, trazendo",
+                "personalidade e cultura do Rio Grande do Sul.",
+            ],
+        ),
+        (
+            "TECNOLOGIAS UTILIZADAS",
+            [
+                "Python, Pygame e SQLite.",
+            ],
+        ),
+        (
+            "AGRADECIMENTOS",
+            [
+                "O desenvolvimento deste projeto foi uma",
+                "oportunidade de transformar conhecimentos",
+                "em uma experiência divertida, unindo",
+                "programação, criatividade e interatividade.",
+                "",
+                "Agradeço também aos professores que, por",
+                "meio de seus ensinamentos, incentivo e",
+                "dedicação, motivam-nos a buscar a realização",
+                "dos nossos sonhos!",
+            ],
+        ),
+        (
+            "AGRADECIMENTOS ESPECIAIS",
+            [
+                "À comunidade do Discord DOGELAND,",
+                "pela amizade, convivência e inspiração.",
+                "",
+                "À minha amada Laissa, pelo companheirismo,",
+                "apoio e por fazer parte desta caminhada.",
+            ],
+        ),
+        (
+            "",
+            [
+                "",
+                "OBRIGADO POR JOGAR PYTRUCO!",
+                "Que não faltem boas cartas e boas disputas!",
+            ],
+        ),
     ]
 
-    for indice, texto in enumerate(creditos):
-        cor = DOURADO if texto.isupper() and texto else BRANCO
+    linhas = []
 
-        linha = fonte_texto.render(
-            texto,
-            True,
-            cor,
-        )
+    for titulo_secao, textos in secoes:
+        if titulo_secao:
+            linhas.append((titulo_secao, DOURADO, 30))
 
-        tela.blit(
-            linha,
-            linha.get_rect(
-                center=(LARGURA // 2, 245 + indice * 34)
-            ),
-        )
+        for texto in textos:
+            cor = (
+                DOURADO
+                if texto == "OBRIGADO POR JOGAR PYTRUCO!"
+                else BRANCO
+            )
+
+            linhas.append((texto, cor, 25))
+
+        linhas.append(("", BRANCO, 18))
+
+    altura_total = sum(espaco for _, _, espaco in linhas)
+
+    area = pygame.Rect(0, 120, LARGURA, 490)
+
+    tempo = pygame.time.get_ticks() / 1000
+
+    velocidade = 25
+
+    deslocamento = (
+        tempo * velocidade
+    ) % (area.height + altura_total)
+
+    y = area.bottom - deslocamento
+
+    tela.set_clip(area)
+
+    for texto, cor, espaco in linhas:
+
+        if texto:
+            linha = fonte_texto.render(
+                texto,
+                True,
+                cor,
+            )
+
+            tela.blit(
+                linha,
+                linha.get_rect(
+                    center=(LARGURA // 2, int(y))
+                ),
+            )
+
+        y += espaco
+
+    tela.set_clip(None)
+
+    aviso = fonte_texto.render(
+        "Pressione ESC para voltar ao menu.",
+        True,
+        DOURADO,
+    )
+
+    tela.blit(
+        aviso,
+        aviso.get_rect(
+            center=(LARGURA // 2, 676)
+        ),
+    )
 
 
 def mostrar_score(tela, fonte_titulo, fonte_texto, fundo):
@@ -472,6 +669,8 @@ def mostrar_score(tela, fonte_titulo, fonte_texto, fundo):
         tela.blit(fundo, (0, 0))
     else:
         tela.fill(VERDE_MESA)
+
+
 
     partidas = buscar_melhores_partidas()
     sessoes = buscar_melhores_sessoes()
@@ -615,7 +814,8 @@ def mostrar_tela_nome(
     imagem_botao,
     imagem_botao_confirmar,
     som_click,
-    som_teclado
+    som_teclado,
+    imagem_origem
 ):
     nome = ""
 
@@ -644,6 +844,7 @@ def mostrar_tela_nome(
     pygame.key.start_text_input()
 
     executando = True
+    transicao_iniciada = False
 
     while executando:
         mouse_pos = pygame.mouse.get_pos()
@@ -773,6 +974,20 @@ def mostrar_tela_nome(
             imagem_botao,
         )
 
+        # Transição de entrada na identificação.
+        if not transicao_iniciada:
+            imagem_destino = tela.copy()
+
+            animar_tela_deslizante(
+                tela,
+                relogio,
+                imagem_origem,
+                imagem_destino,
+                direcao=1
+            )
+
+            transicao_iniciada = True
+
         pygame.display.flip()
         relogio.tick(FPS)
 
@@ -847,6 +1062,8 @@ def iniciar_jogo():
     logo = carregar_logo()
     fundo_menu = carregar_fundo_menu()
     fundo_score = carregar_fundo_score()
+    fundo_credits = carregar_fundo_credits()
+    quadros_gif_creditos = carregar_gif_creditos()
     fundo_identificacao = carregar_fundo_identificacao()
     fundo_regras = carregar_fundo_regras()
     imagem_botao = carregar_imagem_botao()
@@ -881,6 +1098,13 @@ def iniciar_jogo():
     tela_atual = "menu"
     executando = True
     mouse_sobre_botao = None
+
+    # Controle da transição entre telas.
+    imagem_transicao_origem = None
+    imagem_transicao_destino = None
+    inicio_transicao = 0
+    direcao_transicao = 1
+    duracao_transicao = 300
 
     nome_jogador = None
 
@@ -950,7 +1174,8 @@ def iniciar_jogo():
                                 imagem_botao,
                                 imagem_botao_confirmar,
                                 som_click,
-                                som_teclado
+                                som_teclado,
+                                tela.copy()
                             )
 
                             if fechar_jogo:
@@ -985,22 +1210,56 @@ def iniciar_jogo():
                         else:
                             iniciar_musica_menu()
 
+
+
                     elif botao_regras.collidepoint(evento.pos):
+
+                        imagem_transicao_origem = tela.copy()
+
+                        inicio_transicao = pygame.time.get_ticks()
+
+                        direcao_transicao = 1
+
                         tela_atual = "regras"
 
+
                     elif botao_creditos.collidepoint(evento.pos):
+
+                        imagem_transicao_origem = tela.copy()
+
+                        inicio_transicao = pygame.time.get_ticks()
+
+                        direcao_transicao = 1
+
                         tela_atual = "creditos"
 
+
                     elif botao_score.collidepoint(evento.pos):
+
+                        imagem_transicao_origem = tela.copy()
+
+                        inicio_transicao = pygame.time.get_ticks()
+
+                        direcao_transicao = 1
+
                         tela_atual = "score"
+
 
                     elif botao_sair.collidepoint(evento.pos):
                         executando = False
+
 
                 elif tela_atual == "score":
 
                     if botao_voltar_score.collidepoint(evento.pos):
                         som_click.play()
+
+                        imagem_transicao_origem = tela.copy()
+
+                        inicio_transicao = pygame.time.get_ticks()
+
+                        direcao_transicao = -1
+
                         tela_atual = "menu"
 
 
@@ -1010,6 +1269,9 @@ def iniciar_jogo():
                         evento.key == pygame.K_ESCAPE
                         and tela_atual in ("regras", "creditos", "score")
                 ):
+                    imagem_transicao_origem = tela.copy()
+                    inicio_transicao = pygame.time.get_ticks()
+                    direcao_transicao = -1
                     tela_atual = "menu"
 
         # ------------------------------------------
@@ -1085,12 +1347,17 @@ def iniciar_jogo():
                 fundo_regras,
             )
 
+
+
         elif tela_atual == "creditos":
+
             mostrar_creditos(
                 tela,
                 fonte_titulo,
                 fonte_texto,
-                fundo_menu,
+                fundo_credits,
+                quadros_gif_creditos,
+
             )
 
 
@@ -1111,6 +1378,41 @@ def iniciar_jogo():
                 mouse_pos,
                 imagem_botao1,
             )
+
+        # ------------------------------------------
+        # ANIMAÇÃO DE TRANSIÇÃO ENTRE TELAS
+        # ------------------------------------------
+
+        if imagem_transicao_origem is not None:
+
+            tempo_atual = pygame.time.get_ticks()
+            progresso = (
+                                tempo_atual - inicio_transicao
+                        ) / duracao_transicao
+
+            progresso = min(progresso, 1)
+
+            imagem_transicao_destino = tela.copy()
+
+            deslocamento = int(LARGURA * progresso)
+
+            tela.fill((0, 0, 0))
+
+            tela.blit(
+                imagem_transicao_origem,
+                (-direcao_transicao * deslocamento, 0)
+            )
+
+            tela.blit(
+                imagem_transicao_destino,
+                (
+                    direcao_transicao * (LARGURA - deslocamento),
+                    0
+                )
+            )
+
+            if progresso >= 1:
+                imagem_transicao_origem = None
 
         pygame.display.flip()
         relogio.tick(FPS)
