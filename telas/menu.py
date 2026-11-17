@@ -28,6 +28,7 @@ from settings import (
     CAMINHO_BOTAO1,
     CAMINHO_BOTAO_CONFIRMAR,
     CAMINHO_MUSICA_MENU,
+    CAMINHO_SOM_SLIDE,
     CAMINHO_SOM_ROLLOVER,
     CAMINHO_SOM_CLICK,
     CAMINHO_SOM_TECLADO,
@@ -275,8 +276,10 @@ def mostrar_fade_transicao(tela, relogio):
 
 def animar_tela_deslizante(
         tela, relogio, imagem_origem, imagem_destino,
-        direcao=1, duracao=400
+        direcao=1, duracao=400, som_slide=None
 ):
+    if som_slide:
+        som_slide.play()
 
     inicio = pygame.time.get_ticks()
 
@@ -916,7 +919,8 @@ def mostrar_tela_nome(
     imagem_botao_confirmar,
     som_click,
     som_teclado,
-    imagem_origem
+    imagem_origem,
+    som_slide
 ):
     nome = ""
 
@@ -1084,7 +1088,8 @@ def mostrar_tela_nome(
                 relogio,
                 imagem_origem,
                 imagem_destino,
-                direcao=1
+                direcao=1,
+                som_slide=som_slide
             )
 
             transicao_iniciada = True
@@ -1158,6 +1163,8 @@ def iniciar_jogo():
     iniciar_musica_menu()
     som_teclado = carregar_som_teclado()
     som_rollover, som_click = carregar_sons_menu()
+    som_slide = pygame.mixer.Sound(str(CAMINHO_SOM_SLIDE))
+    som_slide.set_volume(0.20)
 
     tela = pygame.display.set_mode((LARGURA, ALTURA))
     pygame.display.set_caption(TITULO)
@@ -1215,6 +1222,7 @@ def iniciar_jogo():
     inicio_transicao = 0
     direcao_transicao = 1
     duracao_transicao = 300
+    som_transicao_tocado = False
 
     nome_jogador = None
 
@@ -1285,7 +1293,8 @@ def iniciar_jogo():
                                 imagem_botao_confirmar,
                                 som_click,
                                 som_teclado,
-                                tela.copy()
+                                tela.copy(),
+                                som_slide
                             )
 
                             if fechar_jogo:
@@ -1512,6 +1521,12 @@ def iniciar_jogo():
 
         if imagem_transicao_origem is not None:
 
+            if not som_transicao_tocado:
+                som_slide.play()
+                som_transicao_tocado = True
+
+            tempo_atual = pygame.time.get_ticks()
+
             tempo_atual = pygame.time.get_ticks()
             progresso = (
                                 tempo_atual - inicio_transicao
@@ -1540,6 +1555,7 @@ def iniciar_jogo():
 
             if progresso >= 1:
                 imagem_transicao_origem = None
+                som_transicao_tocado = False
 
         pygame.display.flip()
         relogio.tick(FPS)
