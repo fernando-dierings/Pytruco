@@ -998,6 +998,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 if botao_aceitar.collidepoint(evento.pos):
                     som_click.play()
                     mensagem = partida.responder_truco(True)
+                    truco_aceito_jogador = True
                     aguardando_proxima = False
                     continue
 
