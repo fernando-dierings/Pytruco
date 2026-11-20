@@ -1704,6 +1704,7 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
 
         carta_hover_anterior = carta_hover_atual
 
+
         # ==========================================
         # BOTÕES DO TRUCO
         # ==========================================
@@ -1711,69 +1712,65 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
         if partida.truco_pendente_computador:
 
             # Botão ACEITAR.
+            escala = 1.04 if botao_hover_atual == "aceitar" else 1.0
+
+            largura = int(botao_aceitar.width * escala)
+            altura = int(botao_aceitar.height * escala)
+
+            retangulo_visual = pygame.Rect(0, 0, largura, altura)
+            retangulo_visual.center = botao_aceitar.center
+
             if imagem_botao_confirmar:
-                tela.blit(imagem_botao_confirmar, botao_aceitar)
+                imagem = pygame.transform.smoothscale(
+                    imagem_botao_confirmar, retangulo_visual.size
+                )
+                tela.blit(imagem, retangulo_visual)
             else:
                 pygame.draw.rect(
-                    tela, (35, 145, 65), botao_aceitar,
+                    tela, (35, 145, 65), retangulo_visual,
                     border_radius=8
                 )
 
             cor_texto = (
-                AMARELO
-                if botao_hover_atual == "aceitar"
-                else BRANCO
+                AMARELO if botao_hover_atual == "aceitar" else BRANCO
             )
-
-            texto = fonte_pequena.render(
-                "ACEITAR", True, cor_texto
-            )
-
-            tela.blit(
-                texto,
-                texto.get_rect(center=botao_aceitar.center),
-            )
+            texto = fonte_pequena.render("ACEITAR", True, cor_texto)
+            tela.blit(texto, texto.get_rect(center=botao_aceitar.center))
 
             # Botão CORRER.
+            escala = 1.04 if botao_hover_atual == "correr" else 1.0
+
+            largura = int(botao_correr.width * escala)
+            altura = int(botao_correr.height * escala)
+
+            retangulo_visual = pygame.Rect(0, 0, largura, altura)
+            retangulo_visual.center = botao_correr.center
+
             if imagem_botao:
-                tela.blit(imagem_botao, botao_correr)
+                imagem = pygame.transform.smoothscale(
+                    imagem_botao, retangulo_visual.size
+                )
+                tela.blit(imagem, retangulo_visual)
             else:
                 pygame.draw.rect(
-                    tela, (180, 45, 45), botao_correr,
+                    tela, (180, 45, 45), retangulo_visual,
                     border_radius=8
                 )
 
             cor_texto = (
-                AMARELO
-                if botao_hover_atual == "correr"
-                else BRANCO
+                AMARELO if botao_hover_atual == "correr" else BRANCO
             )
-
-            texto = fonte_pequena.render(
-                "CORRER", True, cor_texto
-            )
-
-            tela.blit(
-                texto,
-                texto.get_rect(center=botao_correr.center),
-            )
-
+            texto = fonte_pequena.render("CORRER", True, cor_texto)
+            tela.blit(texto, texto.get_rect(center=botao_correr.center))
 
         else:
 
             truco_disponivel = (
-
-                    not partida.truco_pedido
-
-                    and not partida.mao_encerrada
-
-                    and not aguardando_proxima
-
-                    and carta_jogador_pendente is None
-
+                not partida.truco_pedido
+                and not partida.mao_encerrada
+                and not aguardando_proxima
+                and carta_jogador_pendente is None
             )
-
-            # Escolhe a imagem e o texto do botão.
 
             if truco_aceito_jogador:
                 imagem_atual = imagem_botao_aviso
@@ -1782,51 +1779,35 @@ def iniciar_partida(tela, relogio, nome_jogador="Você"):
                 imagem_atual = imagem_botao
                 texto_botao = "PEDIR TRUCO"
 
-            # Desenha o botão.
+            escala = 1.04 if botao_hover_atual == "truco" else 1.0
+
+            largura = int(botao_truco.width * escala)
+            altura = int(botao_truco.height * escala)
+
+            retangulo_visual = pygame.Rect(0, 0, largura, altura)
+            retangulo_visual.center = botao_truco.center
 
             if imagem_atual:
-
-                tela.blit(imagem_atual, botao_truco)
-
+                imagem = pygame.transform.smoothscale(
+                    imagem_atual, retangulo_visual.size
+                )
+                tela.blit(imagem, retangulo_visual)
             else:
-
                 pygame.draw.rect(
-
-                    tela, (180, 45, 45), botao_truco,
-
+                    tela, (180, 45, 45), retangulo_visual,
                     border_radius=8
-
                 )
 
-            # Cor do texto.
-
             cor_texto = (
-
                 BRANCO
-
                 if truco_aceito_jogador
-
                 else AMARELO
-
                 if botao_hover_atual == "truco"
-
                 else BRANCO
-
             )
 
-            texto = fonte_pequena.render(
-
-                texto_botao, True, cor_texto
-
-            )
-
-            tela.blit(
-
-                texto,
-
-                texto.get_rect(center=botao_truco.center),
-
-            )
+            texto = fonte_pequena.render(texto_botao, True, cor_texto)
+            tela.blit(texto, texto.get_rect(center=botao_truco.center))
 
         # Atalho para voltar ao menu.
         ajuda = fonte_pequena.render(
