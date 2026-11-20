@@ -377,17 +377,29 @@ def carregar_gif_creditos():
 # BOTÕES
 # ==================================================
 
+
 def desenhar_botao(
         tela, texto, retangulo, fonte, mouse_pos, imagem_botao
 ):
     selecionado = retangulo.collidepoint(mouse_pos)
 
+    # Aumenta levemente o botão quando o mouse está sobre ele.
+    escala = 1.05 if selecionado else 1.0
+
+    largura = int(retangulo.width * escala)
+    altura = int(retangulo.height * escala)
+
+    retangulo_visual = pygame.Rect(
+        0, 0, largura, altura
+    )
+    retangulo_visual.center = retangulo.center
+
     if imagem_botao:
         imagem = pygame.transform.scale(
             imagem_botao,
-            retangulo.size,
+            retangulo_visual.size,
         )
-        tela.blit(imagem, retangulo)
+        tela.blit(imagem, retangulo_visual)
 
     else:
         cor = DOURADO if selecionado else BRANCO
@@ -396,10 +408,10 @@ def desenhar_botao(
         )
 
         pygame.draw.rect(
-            tela, cor_fundo, retangulo, border_radius=5
+            tela, cor_fundo, retangulo_visual, border_radius=5
         )
         pygame.draw.rect(
-            tela, cor, retangulo, 2, border_radius=5
+            tela, cor, retangulo_visual, 2, border_radius=5
         )
 
     cor_texto = DOURADO if selecionado else BRANCO
