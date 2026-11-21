@@ -159,6 +159,74 @@ def carregar_logo():
     return pygame.transform.scale(imagem, (largura, altura))
 
 
+def desenhar_logo_com_reflexo(tela, logo, centro):
+
+    largura, altura = logo.get_size()
+
+    # Tempo entre os reflexos.
+    tempo = pygame.time.get_ticks() % 5000
+
+    # Duração da passagem da luz.
+    duracao_reflexo = 1000
+
+    retangulo = logo.get_rect(center=centro)
+
+    # Desenha a logo normalmente.
+    tela.blit(logo, retangulo)
+
+    # Aguarda o momento do próximo reflexo.
+    if tempo >= duracao_reflexo:
+        return
+
+    progresso = tempo / duracao_reflexo
+
+    # Posição da faixa de luz.
+    posicao = (
+        -altura * 0.55
+        + progresso * (largura + altura * 0.55)
+    )
+
+    # Obtém a transparência original da logo.
+    alpha_logo = pygame.surfarray.array_alpha(logo)
+
+    # Coordenadas dos pixels.
+    x, y = np.meshgrid(
+        np.arange(largura),
+        np.arange(altura),
+        indexing="ij"
+    )
+
+    # Cria uma faixa diagonal de luz.
+    distancia = x - y * 0.55 - posicao
+
+    intensidade = np.exp(
+        -(distancia / 18) ** 2
+    )
+
+    # Limita o brilho à área visível da logo.
+    alpha_reflexo = (
+        alpha_logo * intensidade * 0.65
+    ).astype(np.uint8)
+
+    # Cria a camada luminosa.
+    reflexo = pygame.Surface(
+        (largura, altura),
+        pygame.SRCALPHA
+    )
+
+    pixels_rgb = pygame.surfarray.pixels3d(reflexo)
+    pixels_alpha = pygame.surfarray.pixels_alpha(reflexo)
+
+    pixels_rgb[:, :, :] = (255, 248, 215)
+    pixels_alpha[:, :] = alpha_reflexo
+
+    del pixels_rgb
+    del pixels_alpha
+
+    # Desenha o reflexo sobre a logo.
+    tela.blit(reflexo, retangulo)
+
+
 def carregar_fundo_menu():
     if not CAMINHO_FUNDO_MENU.exists():
         print(f"Fundo do menu não encontrado: {CAMINHO_FUNDO_MENU}")
@@ -1433,14 +1501,14 @@ def iniciar_jogo():
             else:
                 tela.fill(VERDE_MESA)
 
-            # Logo do PYTRUCO.
+            # Logo do PYTRUCO com efeito de reflexo.
             if logo:
-                tela.blit(
+                desenhar_logo_com_reflexo(
+                    tela,
                     logo,
-                    logo.get_rect(
-                        center=(LARGURA // 2, 230)
-                    ),
+                    (LARGURA // 2, 230)
                 )
+
             else:
                 # Título alternativo caso a logo não exista.
                 titulo = fonte_titulo.render(
