@@ -1051,7 +1051,9 @@ def mostrar_tela_nome(
             elif evento.type == pygame.KEYDOWN:
 
                 if evento.key == pygame.K_BACKSPACE:
-                    nome = nome[:-1]
+                    if nome:
+                        nome = nome[:-1]
+                        som_teclado.play()
 
                 elif evento.key == pygame.K_RETURN and nome.strip():
                     pygame.key.stop_text_input()
